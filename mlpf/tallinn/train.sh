@@ -6,7 +6,12 @@ IMG=/home/software/singularity/base.simg:latest
 cd ~/particleflow
 
 #TF training
-singularity exec --nv $IMG python3 test/tf_model.py --datapath data/TTbar_14TeV_TuneCUETP8M1_cfi --target cand --ntrain 16000 --ntest 4000 --convlayer ghconv --lr 1e-4 --nepochs 1000
+singularity exec -B /scratch --nv $IMG python3 mlpf/tensorflow/tf_model.py \
+  --datapath /scratch/joosep/TTbar_14TeV_TuneCUETP8M1_cfi \
+  --target cand --ntrain 70000 --ntest 20000 --convlayer ghconv \
+  --lr 1e-3 --nepochs 1000 --nbins 64 --attention-layer-cutoff 0.01 \
+  --bin_size 100 --hidden-dim 512 --batch-size 5 --distance-dim 512 \
+  --dropout 0.2 --train-cls --weights experiments/run_28/weights.17-69.778923.hdf5
 
 #Pytorch  training
 #singularity exec -B /home --nv $IMG \

@@ -278,6 +278,7 @@ class SparseAttentionDistance(tf.keras.layers.Layer):
                 (shp[0], shp[1], shp[1])
             )
         else:
+            dms = []
             for ibatch in range(self.batch_size):
                 dms.append(tf.sparse.expand_dims(self.construct_sparse_dm(
                     point_embedding[ibatch]), 0))
@@ -742,13 +743,13 @@ def plot_to_image(figure):
     image = tf.expand_dims(image, 0)
     return image
 
-def load_dataset_ttbar(datapath, target):
+def load_dataset_ttbar(datapath, target, num_parallel_calls=tf.data.experimental.AUTOTUNE):
     from tf_data import _parse_tfr_element
     path = datapath + "/tfr/{}/*.tfrecords".format(target)
     tfr_files = glob.glob(path)
     if len(tfr_files) == 0:
         raise Exception("Could not find any files in {}".format(path))
-    dataset = tf.data.TFRecordDataset(tfr_files).map(_parse_tfr_element, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = tf.data.TFRecordDataset(tfr_files).map(_parse_tfr_element, num_parallel_calls=num_parallel_calls)
     return dataset
 
 if __name__ == "__main__":
