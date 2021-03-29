@@ -13,7 +13,7 @@ mkdir -p data/pythia8_ttbar/processed
 
 cd data/pythia8_ttbar/raw/
 
-for j in {0..10}
+for j in {0..9}
 do
   for i in {0..49}
   do
