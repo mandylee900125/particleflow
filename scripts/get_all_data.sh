@@ -15,7 +15,7 @@ cd data/pythia8_ttbar/raw/
 
 for j in {0..10}
 do
-  for i {0..49}
+  for i in {0..49}
   do
     wget --no-check-certificate -nc https://zenodo.org/record/4452283/files/tev14_pythia8_ttbar_"$j"_"$i".pkl.bz2
   done
