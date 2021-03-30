@@ -389,4 +389,4 @@ if __name__ == "__main__":
         model = model.to(device)
         model.eval()
 
-        Evaluate(model, test_loader, args.path, args.target)
+        Evaluate(model, test_loader, args.path, args.target, device)
