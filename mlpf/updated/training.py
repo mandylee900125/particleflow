@@ -291,21 +291,21 @@ def train_loop():
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
 
-    make_plot_from_list(losses_tot_train, 'train loss', 'Epochs', 'Loss', outpath, 'losses_tot_train')
-    make_plot_from_list(losses_1_train, 'train loss', 'Epochs', 'Loss', outpath, 'losses_1_train')
-    make_plot_from_list(losses_2_train, 'train loss', 'Epochs', 'Loss', outpath, 'losses_2_train')
+    make_plot_from_list(losses_tot_train, 'train loss_tot', 'Epochs', 'Loss', outpath, 'losses_tot_train')
+    make_plot_from_list(losses_1_train, 'train loss_1', 'Epochs', 'Loss', outpath, 'losses_1_train')
+    make_plot_from_list(losses_2_train, 'train loss_2', 'Epochs', 'Loss', outpath, 'losses_2_train')
 
-    make_plot_from_list(losses_tot_valid, 'valid loss', 'Epochs', 'Loss', outpath, 'losses_tot_valid')
-    make_plot_from_list(losses_1_valid, 'valid loss', 'Epochs', 'Loss', outpath, 'losses_1_valid')
-    make_plot_from_list(losses_2_valid, 'valid loss', 'Epochs', 'Loss', outpath, 'losses_2_valid')
+    make_plot_from_list(losses_tot_valid, 'valid loss_tot', 'Epochs', 'Loss', outpath, 'losses_tot_valid')
+    make_plot_from_list(losses_1_valid, 'valid loss_1', 'Epochs', 'Loss', outpath, 'losses_1_valid')
+    make_plot_from_list(losses_2_valid, 'valid loss_2', 'Epochs', 'Loss', outpath, 'losses_2_valid')
 
     make_plot_from_list(accuracies_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_train')
-    make_plot_from_list(accuracies_msk_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_train')
-    make_plot_from_list(accuracies_msk2_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_train')
+    make_plot_from_list(accuracies_msk_train, 'train accuracy_msk', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_train')
+    make_plot_from_list(accuracies_msk2_train, 'train accuracy_msk2', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_train')
 
     make_plot_from_list(accuracies_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_valid')
-    make_plot_from_list(accuracies_msk_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_valid')
-    make_plot_from_list(accuracies_msk2_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_valid')
+    make_plot_from_list(accuracies_msk_valid, 'valid accuracy_msk', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_valid')
+    make_plot_from_list(accuracies_msk2_valid, 'valid accuracy_msk2', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_valid')
 
     print('Done with training.')
 
