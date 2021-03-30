@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument("--load", type=str, help="Load the weight file", required=False, default=None)
 
     # for evaluation
-    parser.add_argument("--evaluate", action=BoolArg, default=True, help="Evaluates the model on the test data")
+    parser.add_argument("--evaluate", type=str, default=True, help="Evaluates the model on the test data")
     parser.add_argument("--path", type=str, help="path to model", default="../../test_tmp_delphes/experiments/PFNet7_cand_ntrain_2")
     parser.add_argument("--eval_epoch", type=str, default=0, help="Epoch to use for testing")
 
