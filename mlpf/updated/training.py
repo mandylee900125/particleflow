@@ -266,7 +266,7 @@ def train_loop():
         eta = epochs_remaining*time_per_epoch/60
 
         print("epoch={}/{} dt={:.2f}s train_loss={:.5f} valid_loss={:.5f} train_acc={:.5f} valid_acc={:.5f} stale={} eta={:.1f}m".format(
-            epoch, args.n_epochs,
+            epoch+1, args.n_epochs,
             t1 - t0, losses_tot_train[epoch], losses_tot_valid[epoch], accuracies_train[epoch], accuracies_valid[epoch],
             stale_epochs, eta))
 

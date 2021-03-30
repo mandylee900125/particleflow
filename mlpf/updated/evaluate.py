@@ -161,10 +161,10 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, out):
 
     cm = sklearn.metrics.confusion_matrix(
         true_id,
-        pred_id, labels=list(range(num_output_classes)))
+        pred_id, labels = list(range(num_output_classes)))
     cm_normed = sklearn.metrics.confusion_matrix(
         true_id,
-        pred_id, labels=list(range(num_output_classes)), normalize="true")
+        pred_id, labels = list(range(num_output_classes)), normalize="true")
 
     figure = plot_confusion_matrix(cm)
     #cm_image = plot_to_image(figure)
@@ -245,11 +245,11 @@ def Evaluate(model, test_loader, path, target, device):
         for batch in test_loader:
             pred_id, pred_p4, new_edges = model(batch.to(device))
 
-            pred_id_all.append(pred_id)
-            pred_p4_all.append(pred_p4)
-            new_edges_all.append(new_edges)
-            ycand_id_all.append(batch.ycand_id.to(device))
-            ycand_all.append(batch.ycand.to(device))
+            pred_id_all.append(pred_id.to('cpu'))
+            pred_p4_all.append(pred_p4.to('cpu'))
+            new_edges_all.append(new_edges.to('cpu'))
+            ycand_id_all.append(batch.ycand_id.to('cpu'))
+            ycand_all.append(batch.ycand.to('cpu'))
 
         pred_id = pred_id_all[0]
         pred_p4 = pred_p4_all[0]
