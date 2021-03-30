@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument("--hidden_dim", type=int, default=32, help="hidden dimension")
     parser.add_argument("--encoding_dim", type=int, default=256, help="encoded element dimension")
     parser.add_argument("--batch_size", type=int, default=1, help="Number of .pt files to load in parallel")
-    parser.add_argument("--model", type=str, choices=sorted(model_classes.keys()), help="type of model to use", default="PFNet6")
+    parser.add_argument("--model", type=str, help="type of model to use", default="PFNet7")
     parser.add_argument("--target", type=str, choices=["cand", "gen"], help="Regress to PFCandidates or GenParticles", default="cand")
     parser.add_argument("--outpath", type=str, default = 'experiments/', help="Output folder")
     parser.add_argument("--activation", type=str, default='leaky_relu', choices=["selu", "leaky_relu", "relu"], help="activation function")
