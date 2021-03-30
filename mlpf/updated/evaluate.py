@@ -243,7 +243,7 @@ def Evaluate(model, test_loader, path, target, device):
         ycand_all = []
 
         for batch in test_loader:
-            pred_id, pred_p4, new_edges = model(batch.to(device))
+            pred_id, pred_p4, new_edges = model(batch) #model(batch.to(device))
 
             pred_id_all.append(pred_id.to('cpu'))
             pred_p4_all.append(pred_p4.to('cpu'))

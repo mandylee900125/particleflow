@@ -415,7 +415,7 @@ if __name__ == "__main__":
         model_class = model_classes[args.model]
         model = model_class(**model_kwargs)
         model.load_state_dict(weights)
-        model = model.to(device)
+        model = model.to('cpu') #model.to(device)
         model.eval()
 
         Evaluate(model, test_loader, outpath, args.target, device)
