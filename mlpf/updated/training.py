@@ -376,10 +376,10 @@ if __name__ == "__main__":
 
     # evaluate the model
     if args.evaluate:
-        weights = torch.load("{}/epoch_{}_weights.pth".format(args.path, args.eval_epoch), map_location=device)
+        weights = torch.load("{}/epoch_{}_weights.pth".format(outpath, args.eval_epoch), map_location=device)
         weights = {k.replace("module.", ""): v for k, v in weights.items()}
 
-        with open('{}/model_kwargs.pkl'.format(args.path),'rb') as f:
+        with open('{}/model_kwargs.pkl'.format(outpath),'rb') as f:
             model_kwargs = pickle.load(f)
 
         model_class = model_classes[args.model]
@@ -388,4 +388,4 @@ if __name__ == "__main__":
         model = model.to(device)
         model.eval()
 
-        Evaluate(model, test_loader, args.path, args.target, device)
+        Evaluate(model, test_loader, outpath, args.target, device)
