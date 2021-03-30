@@ -148,7 +148,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             target_p4 = batch.ycand.to(device)
 
         # forwardprop
-        cand_ids, cand_p4, new_edge_index = model(batch)
+        cand_ids, cand_p4, new_edge_index = model(X)
 
         # BACKPROP
         # (1) Predictions where both the predicted and true class label was nonzero
@@ -390,7 +390,3 @@ if __name__ == "__main__":
         model.eval()
 
         Evaluate(model, test_loader, args.path, args.target)
-
-
-
-        _, indices = torch.max(cand_ids, -1).device     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)

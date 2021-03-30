@@ -233,7 +233,7 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, out):
 
 
 
-def Evaluate(model, test_loader, path, target):
+def Evaluate(model, test_loader, path, target, device):
     # TODO: make another for 'gen'
     if target=='cand':
         pred_id_all = []
@@ -243,13 +243,13 @@ def Evaluate(model, test_loader, path, target):
         ycand_all = []
 
         for batch in test_loader:
-            pred_id, pred_p4, new_edges = model(batch)
+            pred_id, pred_p4, new_edges = model(batch.to(device))
 
             pred_id_all.append(pred_id)
             pred_p4_all.append(pred_p4)
             new_edges_all.append(new_edges)
-            ycand_id_all.append(batch.ycand_id)
-            ycand_all.append(batch.ycand)
+            ycand_id_all.append(batch.ycand_id.to(device))
+            ycand_all.append(batch.ycand.to(device))
 
         pred_id = pred_id_all[0]
         pred_p4 = pred_p4_all[0]
