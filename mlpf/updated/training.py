@@ -98,7 +98,7 @@ def make_plot_from_list(l, label, xlabel, ylabel, outpath, save_as):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.legend(loc='best')
-    plt.savefig(outpath + '/' + str(l) + '.png')
+    plt.savefig(outpath + '/' + save_as + '.png')
     plt.close(fig)
 
     with open(outpath + '/' + save_as + '.pkl', 'wb') as f:
