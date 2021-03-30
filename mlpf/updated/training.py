@@ -64,7 +64,7 @@ from evaluate import make_plots, Evaluate
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs lr, target_type):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
