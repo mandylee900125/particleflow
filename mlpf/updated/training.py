@@ -143,7 +143,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         # for better reading of the code
         if args.target == "cand":
-            X = batch
+            X = batch.to(device)
             target_ids = batch.ycand_id.to(device)
             target_p4 = batch.ycand.to(device)
 
