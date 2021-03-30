@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=1, help="Number of .pt files to load in parallel")
     parser.add_argument("--model", type=str, help="type of model to use", default="PFNet7")
     parser.add_argument("--target", type=str, choices=["cand", "gen"], help="Regress to PFCandidates or GenParticles", default="cand")
-    parser.add_argument("--outpath", type=str, default = 'experiments/', help="Output folder")
+    parser.add_argument("--outpath", type=str, default = '../../test_tmp_delphes/experiments/', help="Output folder")
     parser.add_argument("--activation", type=str, default='leaky_relu', choices=["selu", "leaky_relu", "relu"], help="activation function")
     parser.add_argument("--optimizer", type=str, default='adam', choices=["adam", "adamw"], help="optimizer to use")
     parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
