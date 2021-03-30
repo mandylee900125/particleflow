@@ -11,11 +11,11 @@ def parse_args():
     parser.add_argument("--num-proc", type=int, default=24, help="number of processes")
 
     # for training
-    parser.add_argument("--train", action=BoolArg, default=True, help="Trains the model")
+    parser.add_argument("--train", type=str, default=True, help="Trains the model")
     parser.add_argument("--n_train", type=int, default=3, help="number of data files to use for training.. each file contains 100 events")
     parser.add_argument("--n_valid", type=int, default=1, help="number of data files to use for validation.. each file contains 100 events")
     parser.add_argument("--n_test", type=int, default=2, help="number of data files to use for testing.. each file contains 100 events")
-    parser.add_argument("--n_epochs", type=int, default=100, help="number of training epochs")
+    parser.add_argument("--n_epochs", type=int, default=1, help="number of training epochs")
     parser.add_argument("--patience", type=int, default=100, help="patience before early stopping")
     parser.add_argument("--hidden_dim", type=int, default=32, help="hidden dimension")
     parser.add_argument("--encoding_dim", type=int, default=256, help="encoded element dimension")
