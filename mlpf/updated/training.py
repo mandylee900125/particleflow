@@ -245,7 +245,7 @@ def train_loop():
 
         # training epoch
         model.train()
-        num_samples, losses_tot, losses_1, losses_2 acc, acc_msk, acc_msk2, conf_matrix = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
+        num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
 
         losses_tot_train.append(losses_tot)
         losses_1_train.append(losses_tot)
@@ -312,18 +312,18 @@ def train_loop():
 
 if __name__ == "__main__":
 
-    args = parse_args()
+    #args = parse_args()
 
-    # # the next part initializes some args values (to run the script not from terminal)
-    # class objectview(object):
-    #     def __init__(self, d):
-    #         self.__dict__ = d
-    #
-    # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'cand', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
-    # 'radius': 0.1, 'convlayer': 'gravnet-radius', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': None, 'evaluate': True, 'path': '../../test_tmp_delphes/experiments/PFNet7_cand_ntrain_3', 'eval_epoch' : 0})
+    # the next part initializes some args values (to run the script not from terminal)
+    class objectview(object):
+        def __init__(self, d):
+            self.__dict__ = d
+
+    args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    'batch_size': 1, 'model': 'PFNet7', 'target': 'cand', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar',
+    'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
+    'radius': 0.1, 'convlayer': 'gravnet-radius', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
+    'input_encoding': 0, 'load': None, 'evaluate': True, 'path': '../../test_tmp_delphes/experiments/PFNet7_cand_ntrain_3', 'eval_epoch' : 0})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     full_dataset = PFGraphDataset(args.dataset)
