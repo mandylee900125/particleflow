@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument("--l3", type=float, default=1.0, help="Loss multiplier for clustering")
     parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate")
     parser.add_argument("--radius", type=float, default=0.1, help="Radius-graph radius")
-    parser.add_argument("--convlayer", type=str, choices=["gravnet-knn", "gravnet-radius", "sgconv", "gatconv"], help="Convolutional layer", default="gravnet")
+    parser.add_argument("--convlayer", type=str, choices=["gravnet-knn", "gravnet-radius", "sgconv", "gatconv"], help="Convolutional layer", default="gravnet-radius")
     parser.add_argument("--convlayer2", type=str, choices=["sgconv", "graphunet", "gatconv", "none"], help="Convolutional layer", default="none")
     parser.add_argument("--space_dim", type=int, default=2, help="Spatial dimension for clustering in gravnet layer")
     parser.add_argument("--nearest", type=int, default=3, help="k nearest neighbors in gravnet layer")

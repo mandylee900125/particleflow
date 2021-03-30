@@ -90,6 +90,18 @@ def compute_weights(target_ids, device):
         weights[k] = 1.0/math.sqrt(float(v))
     return weights
 
+def make_plot_from_list(l, label, xlabel, ylabel, outpath):
+    fig, ax = plt.subplots()
+    ax.plot(range(len(l)), l, label=label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.legend(loc='best')
+    plt.savefig(outpath + '/' + str(l) + '.png')
+    plt.close(fig)
+
+    with open(outpath + '/' + str(l) + '.pkl', 'wb') as f:
+        pickle.dump(l, f)
+
 @torch.no_grad()
 def test(model, loader, epoch, l1m, l2m, l3m, target_type, device):
     with torch.no_grad():
@@ -259,6 +271,11 @@ def train_loop():
             stale_epochs, eta))
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
+
+    make_plot_from_list(losses_tot_train, 'train loss', 'Epochs', 'Loss', outpath)
+    make_plot_from_list(losses_tot_valid, 'valid loss', 'Epochs', 'Loss', outpath)
+    make_plot_from_list(accuracies_train, 'train accuracy', 'Epochs', 'Accuracy', outpath)
+    make_plot_from_list(accuracies_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath)
 
     print('Done with training.')
 
