@@ -154,10 +154,10 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         # (1) Predictions where both the predicted and true class label was nonzero
         # In these cases, the true candidate existed and a candidate was predicted
         # msk is a list of booleans of shape [~5000*batch_size] where each boolean correspond to whether a candidate was predicted
-        _, indices = torch.max(cand_ids, -1).to(device)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
+        _, indices = torch.max(cand_ids, -1)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
         _, target_ids_msk = torch.max(target_ids, -1)
-        msk = ((indices != 0) & (target_ids_msk != 0)).to(device)
-        msk2 = ((indices != 0) & (indices == target_ids_msk)).to(device)
+        msk = ((indices != 0) & (target_ids_msk != 0))
+        msk2 = ((indices != 0) & (indices == target_ids_msk))
 
         # (2) computing losses
         weights = compute_weights(torch.max(target_ids,-1)[1], device)
