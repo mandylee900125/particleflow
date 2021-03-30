@@ -11,6 +11,7 @@ def parse_args():
     parser.add_argument("--num-proc", type=int, default=24, help="number of processes")
 
     # for training
+    parser.add_argument("--train", action=BoolArg, default=True, help="Trains the model")
     parser.add_argument("--n_train", type=int, default=3, help="number of data files to use for training.. each file contains 100 events")
     parser.add_argument("--n_valid", type=int, default=1, help="number of data files to use for validation.. each file contains 100 events")
     parser.add_argument("--n_test", type=int, default=2, help="number of data files to use for testing.. each file contains 100 events")
@@ -37,7 +38,6 @@ def parse_args():
     parser.add_argument("--overwrite", action='store_true', help="overwrite if model output exists")
     parser.add_argument("--input_encoding", type=int, help="use an input encoding layer", default=0)
     parser.add_argument("--load", type=str, help="Load the weight file", required=False, default=None)
-    parser.add_argument("--scheduler", type=str, help="LR scheduler", required=False, default="none", choices=["none", "onecycle"])
 
     # for evaluation
     parser.add_argument("--evaluate", action=BoolArg, default=True, help="Evaluates the model on the test data")

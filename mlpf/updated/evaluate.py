@@ -230,3 +230,39 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, out):
 
     figure = plot_particles( out+'particleID2', true_id, true_p4, pred_id, pred_p4, pid=2)
     #pid_image_2 = plot_to_image(figure)
+
+
+
+def Evaluate(model, test_loader, path, target):
+    # TODO: make another for 'gen'
+    if target=='cand':
+        pred_id_all = []
+        pred_p4_all = []
+        new_edges_all = []
+        ycand_id_all = []
+        ycand_all = []
+
+        for batch in test_loader:
+            pred_id, pred_p4, new_edges = model(batch)
+
+            pred_id_all.append(pred_id)
+            pred_p4_all.append(pred_p4)
+            new_edges_all.append(new_edges)
+            ycand_id_all.append(batch.ycand_id)
+            ycand_all.append(batch.ycand)
+
+        pred_id = pred_id_all[0]
+        pred_p4 = pred_p4_all[0]
+        new_edges = new_edges_all[0]
+        ycand_id = ycand_id_all[0]
+        ycand = ycand_all[0]
+
+        for i in range(len(pred_id_all)-1):
+            pred_id = torch.cat((pred_id,pred_id_all[i+1]))
+            pred_p4 = torch.cat((pred_p4,pred_p4_all[i+1]))
+            ycand = torch.cat((ycand,ycand_all[i+1]))
+            ycand_id = torch.cat((ycand_id,ycand_id_all[i+1]))
+
+        print('Making plots for evaluation..')
+
+        make_plots(ycand_id, ycand, pred_id, pred_p4, out=path +'/')
