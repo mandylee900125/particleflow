@@ -207,7 +207,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     losses_2 = np.mean(losses_2)
     losses_tot = np.mean(losses_tot)
 
-    return num_samples, losses_tot, acc, conf_matrix
+    return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix
 
 
 def train_loop():
@@ -222,7 +222,12 @@ def train_loop():
     losses_tot_valid = []
 
     accuracies_train = []
+    accuracies_msk_train = []
+    accuracies_msk2_train = []
+
     accuracies_valid = []
+    accuracies_msk_valid = []
+    accuracies_msk2_valid = []
 
     conf_matrix_train = np.zeros((output_dim_id, output_dim_id))
     conf_matrix_valid = np.zeros((output_dim_id, output_dim_id))
@@ -240,17 +245,30 @@ def train_loop():
 
         # training epoch
         model.train()
-        num_samples, losses_tot, acc, conf_matrix = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
+        num_samples, losses_tot, losses_1, losses_2 acc, acc_msk, acc_msk2, conf_matrix = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
 
         losses_tot_train.append(losses_tot)
+        losses_1_train.append(losses_tot)
+        losses_2_train.append(losses_tot)
+
         accuracies_train.append(acc)
+        accuracies_msk_train.append(acc_msk)
+        accuracies_msk2_train.append(acc_msk2)
+
         conf_matrix_train += conf_matrix
 
         # validation step
         model.eval()
-        num_samples_val, losses_tot_v, acc_v, conf_matrix_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
+        num_samples_val, losses_tot_v, losses_1_v, losses_2_v, acc_v, acc_msk_v, acc_msk2_v, conf_matrix_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
+
         losses_tot_valid.append(losses_tot_v)
+        losses_1_valid.append(losses_tot)
+        losses_2_valid.append(losses_tot)
+
         accuracies_valid.append(acc_v)
+        accuracies_msk_valid.append(acc_msk)
+        accuracies_msk2_valid.append(acc_msk2)
+
         conf_matrix_valid += conf_matrix_v
 
         # early-stopping
@@ -266,17 +284,28 @@ def train_loop():
         time_per_epoch = (t1 - t0_initial)/(epoch + 1)
         eta = epochs_remaining*time_per_epoch/60
 
-        print("epoch={}/{} dt={:.2f}s train_loss={:.5f} valid_loss={:.5f} train_acc={:.5f} valid_acc={:.5f} stale={} eta={:.1f}m".format(
+        print("epoch={}/{} dt={:.2f}min train_loss={:.5f} valid_loss={:.5f} train_acc={:.5f} valid_acc={:.5f} stale={} eta={:.1f}m".format(
             epoch+1, args.n_epochs,
-            t1 - t0, losses_tot_train[epoch], losses_tot_valid[epoch], accuracies_train[epoch], accuracies_valid[epoch],
+            (t1-t0)/60, losses_tot_train[epoch], losses_tot_valid[epoch], accuracies_train[epoch], accuracies_valid[epoch],
             stale_epochs, eta))
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
 
     make_plot_from_list(losses_tot_train, 'train loss', 'Epochs', 'Loss', outpath, 'losses_tot_train')
+    make_plot_from_list(losses_1_train, 'train loss', 'Epochs', 'Loss', outpath, 'losses_1_train')
+    make_plot_from_list(losses_2_train, 'train loss', 'Epochs', 'Loss', outpath, 'losses_2_train')
+
     make_plot_from_list(losses_tot_valid, 'valid loss', 'Epochs', 'Loss', outpath, 'losses_tot_valid')
+    make_plot_from_list(losses_1_valid, 'valid loss', 'Epochs', 'Loss', outpath, 'losses_1_valid')
+    make_plot_from_list(losses_2_valid, 'valid loss', 'Epochs', 'Loss', outpath, 'losses_2_valid')
+
     make_plot_from_list(accuracies_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_train')
+    make_plot_from_list(accuracies_msk_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_train')
+    make_plot_from_list(accuracies_msk2_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_train')
+
     make_plot_from_list(accuracies_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_valid')
+    make_plot_from_list(accuracies_msk_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_valid')
+    make_plot_from_list(accuracies_msk2_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_valid')
 
     print('Done with training.')
 
