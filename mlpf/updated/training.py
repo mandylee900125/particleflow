@@ -106,7 +106,7 @@ def make_plot_from_list(l, label, xlabel, ylabel, outpath):
 @torch.no_grad()
 def test(model, loader, epoch, l1m, l2m, l3m, target_type, device):
     with torch.no_grad():
-        ret = train(model, loader, epoch, None, l1m, l2m, l3m, target_type, None)
+        ret = train(model, loader, epoch, None, l1m, l2m, l3m, target_type, device)
     return ret
 
 
@@ -247,8 +247,7 @@ def train_loop():
 
         # validation step
         model.eval()
-        num_samples_val, losses_tot_v, acc_v, conf_matrix_v = test(model, valid_loader, epoch,
-                                                                    args.l1, args.l2, args.l3, args.target, device)
+        num_samples_val, losses_tot_v, acc_v, conf_matrix_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
         losses_tot_valid.append(losses_tot_v)
         accuracies_valid.append(acc_v)
         conf_matrix_valid += conf_matrix_v
