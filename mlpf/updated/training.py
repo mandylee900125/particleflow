@@ -248,8 +248,8 @@ def train_loop():
         num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
 
         losses_tot_train.append(losses_tot)
-        losses_1_train.append(losses_tot)
-        losses_2_train.append(losses_tot)
+        losses_1_train.append(losses_1)
+        losses_2_train.append(losses_2)
 
         accuracies_train.append(acc)
         accuracies_msk_train.append(acc_msk)
@@ -262,12 +262,12 @@ def train_loop():
         num_samples_val, losses_tot_v, losses_1_v, losses_2_v, acc_v, acc_msk_v, acc_msk2_v, conf_matrix_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
 
         losses_tot_valid.append(losses_tot_v)
-        losses_1_valid.append(losses_tot)
-        losses_2_valid.append(losses_tot)
+        losses_1_valid.append(losses_1_v)
+        losses_2_valid.append(losses_2_v)
 
         accuracies_valid.append(acc_v)
-        accuracies_msk_valid.append(acc_msk)
-        accuracies_msk2_valid.append(acc_msk2)
+        accuracies_msk_valid.append(acc_msk_v)
+        accuracies_msk2_valid.append(acc_msk2_v)
 
         conf_matrix_valid += conf_matrix_v
 
