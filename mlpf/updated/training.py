@@ -7,18 +7,20 @@ import pandas as pd
 import pickle, math, time, numba, tqdm
 
 #Check if the GPU configuration has been provided
-try:
-    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
-        import setGPU
-except Exception as e:
-    print("Could not import setGPU, running CPU-only")
-
 import torch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
 
-if multi_gpu:
-    print('Will use multi_gpu..')
+try:
+    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
+        import setGPU
+        if multi_gpu:
+            print('Will use multi_gpu..')
+        else:
+            print('Will use single_gpu..')
+except Exception as e:
+    print("Could not import setGPU, running CPU-only")
+
 
 #define the global base device
 if use_gpu:
@@ -78,7 +80,6 @@ def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type):
         n_epochs)
     return model_fname
 
-
 def mse_loss(input, target):
     return torch.sum((input - target) ** 2)
 
@@ -93,15 +94,18 @@ def compute_weights(target_ids, device):
     return weights
 
 def make_plot_from_list(l, label, xlabel, ylabel, outpath, save_as):
+    if not os.path.exists(outpath + '/training_plots/'):
+        os.makedirs(outpath + '/training_plots/')
+
     fig, ax = plt.subplots()
     ax.plot(range(len(l)), l, label=label)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.legend(loc='best')
-    plt.savefig(outpath + '/' + save_as + '.png')
+    plt.savefig(outpath + '/training_plots/' + save_as + '.png')
     plt.close(fig)
 
-    with open(outpath + '/' + save_as + '.pkl', 'wb') as f:
+    with open(outpath + '/training_plots/' + save_as + '.pkl', 'wb') as f:
         pickle.dump(l, f)
 
 @torch.no_grad()
@@ -319,11 +323,11 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    # args = objectview({'train': False, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'cand', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-radius', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': None, 'evaluate': True, 'path': '../../test_tmp_delphes/experiments/PFNet7_cand_ntrain_3', 'eval_epoch' : 0})
+    # 'input_encoding': 0, 'load': True, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     full_dataset = PFGraphDataset(args.dataset)
@@ -360,10 +364,6 @@ if __name__ == "__main__":
     if args.train:
         #instantiate the model
         model = model_class(**model_kwargs)
-        if args.load:
-            s1 = torch.load(args.load, map_location=torch.device('cpu'))
-            s2 = {k.replace("module.", ""): v for k, v in s1.items()}
-            model.load_state_dict(s2)
 
         if multi_gpu:
             model = torch_geometric.nn.DataParallel(model)
@@ -396,26 +396,23 @@ if __name__ == "__main__":
 
         print(model)
         print(model_fname)
-        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-        params = sum([np.prod(p.size()) for p in model_parameters])
-        print("params", params)
 
         # train the model
         model.train()
         train_loop()
 
+    elif args.load:
+            model = model_class(**model_kwargs)
+            outpath = args.outpath + args.load_model
+            PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
+            model.load_state_dict(torch.load(PATH, map_location=device))
+
     # evaluate the model
     if args.evaluate:
-        weights = torch.load("{}/epoch_{}_weights.pth".format(outpath, args.eval_epoch), map_location=device)
-        weights = {k.replace("module.", ""): v for k, v in weights.items()}
+        if args.evaluate_on_cpu:
+            device="cpu"
 
-        with open('{}/model_kwargs.pkl'.format(outpath),'rb') as f:
-            model_kwargs = pickle.load(f)
-
-        model_class = model_classes[args.model]
-        model = model_class(**model_kwargs)
-        model.load_state_dict(weights)
-        model = model.to('cpu') #model.to(device)
+        model = model.to(device)
         model.eval()
 
         Evaluate(model, test_loader, outpath, args.target, device)

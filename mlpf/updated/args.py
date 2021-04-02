@@ -37,12 +37,13 @@ def parse_args():
     parser.add_argument("--nearest", type=int, default=3, help="k nearest neighbors in gravnet layer")
     parser.add_argument("--overwrite", action='store_true', help="overwrite if model output exists")
     parser.add_argument("--input_encoding", type=int, help="use an input encoding layer", default=0)
-    parser.add_argument("--load", type=str, help="Load the weight file", required=False, default=None)
+    parser.add_argument("--load", type=str, help="Load the model (no training)", required=False, default=None)
+    parser.add_argument("--load_model", type=str, help="Which model to load", default="PFNet7_cand_ntrain_2")
+    parser.add_argument("--load_epoch", type=float, default=0, help="Which epoch of the model to load for evaluation")
 
     # for evaluation
     parser.add_argument("--evaluate", type=str, default=True, help="Evaluates the model on the test data")
-    parser.add_argument("--path", type=str, help="path to model", default="../../test_tmp_delphes/experiments/PFNet7_cand_ntrain_2")
-    parser.add_argument("--eval_epoch", type=str, default=0, help="Epoch to use for testing")
+    parser.add_argument("--evaluate_on_cpu", type=str, help="Check to evaluate on cpu", default=False)
 
     args = parser.parse_args()
 
