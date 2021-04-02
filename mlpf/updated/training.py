@@ -16,19 +16,17 @@ try:
         import setGPU
         if multi_gpu:
             print('Will use multi_gpu..')
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
         else:
             print('Will use single_gpu..')
 except Exception as e:
     print("Could not import setGPU, running CPU-only")
-
 
 #define the global base device
 if use_gpu:
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
-
-print("Working on device:", device)
 
 import torch_geometric
 import torch.nn as nn
@@ -323,11 +321,11 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': False, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'cand', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-radius', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': True, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
+    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     full_dataset = PFGraphDataset(args.dataset)
@@ -367,6 +365,7 @@ if __name__ == "__main__":
 
         if multi_gpu:
             model = torch_geometric.nn.DataParallel(model)
+            print("Parallelizing the training..")
 
         model.to(device)
 
