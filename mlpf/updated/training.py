@@ -56,7 +56,7 @@ from args import parse_args
 
 from model import PFNet7
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
-from data_preprocessing import data_to_loader
+from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
 from evaluate import make_plots, Evaluate
 
@@ -323,10 +323,12 @@ if __name__ == "__main__":
     # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
-    full_dataset = PFGraphDataset(args.dataset)
+    full_dataset_ttbar = PFGraphDataset(args.dataset)
+    full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
 
     # constructs a loader from the data to iterate over batches
-    train_loader, valid_loader, test_loader = data_to_loader(full_dataset, args.n_train, args.n_valid, args.n_test, batch_size=args.batch_size)
+    train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, args.n_test, batch_size=args.batch_size)
+    test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_train, args.n_valid, args.n_test, batch_size=args.batch_size)
 
     # element parameters
     input_dim = 12
