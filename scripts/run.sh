@@ -1,5 +1,5 @@
 
-cd test_tmp_delphes
+cd particleflow/test_tmp_delphes
 
 #generate pytorch data files from pkl files
 python3 ../particleflow/mlpf/pytorch/graph_data_delphes.py --dataset data/pythia8_ttbar \
