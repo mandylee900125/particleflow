@@ -150,6 +150,11 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             target_ids = batch.ycand_id.to(device)
             target_p4 = batch.ycand.to(device)
 
+        if args.target == "gen":
+            X = batch.to(device)
+            target_ids = batch.ygen_id.to(device)
+            target_p4 = batch.ygen.to(device)
+
         # forwardprop
         cand_ids, cand_p4, new_edge_index = model(X)
 
@@ -215,21 +220,11 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 def train_loop():
     t0_initial = time.time()
 
-    losses_1_train = []
-    losses_2_train = []
-    losses_tot_train = []
+    losses_1_train, losses_2_train, losses_tot_train = [], [], []
+    losses_1_valid, losses_2_valid, losses_tot_valid  = [], [], []
 
-    losses_1_valid = []
-    losses_2_valid = []
-    losses_tot_valid = []
-
-    accuracies_train = []
-    accuracies_msk_train = []
-    accuracies_msk2_train = []
-
-    accuracies_valid = []
-    accuracies_msk_valid = []
-    accuracies_msk2_valid = []
+    accuracies_train, accuracies_msk_train, accuracies_msk2_train = [], [], []
+    accuracies_valid, accuracies_msk_valid, accuracies_msk2_valid = [], [], []
 
     conf_matrix_train = np.zeros((output_dim_id, output_dim_id))
     conf_matrix_valid = np.zeros((output_dim_id, output_dim_id))
@@ -322,9 +317,9 @@ if __name__ == "__main__":
     #         self.__dict__ = d
     #
     # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'cand', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar',
+    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
-    # 'radius': 0.1, 'convlayer': 'gravnet-radius', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
+    # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
     # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
@@ -409,7 +404,7 @@ if __name__ == "__main__":
     # evaluate the model
     if args.evaluate:
         if args.evaluate_on_cpu:
-            device="cpu"
+            device = "cpu"
 
         model = model.to(device)
         model.eval()

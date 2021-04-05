@@ -79,7 +79,7 @@ def energy_resolution(true_id, true_p4, pred_id, pred_p4):
 
     return mse_unreduced(true_p4[msk], pred_p4[msk])
 
-def plot_confusion_matrix(cm):
+def plot_confusion_matrix(cm, fname):
     fig = plt.figure(figsize=(5,5))
     plt.imshow(cm, cmap="Blues")
     plt.title("Reconstructed PID (normed to gen)")
@@ -89,9 +89,10 @@ def plot_confusion_matrix(cm):
     plt.yticks(range(6), ["none", "ch.had", "n.had", "g", "el", "mu"]);
     plt.colorbar()
     plt.tight_layout()
+    plt.savefig(fname + '.png')
     return fig
 
-def plot_regression(val_x, val_y, var_name, rng, fname):
+def plot_regression(val_x, val_y, var_name, rng, target, fname):
     fig = plt.figure(figsize=(5,5))
     plt.hist2d(
         val_x,
@@ -100,15 +101,25 @@ def plot_regression(val_x, val_y, var_name, rng, fname):
         cmap="Blues",
         #norm=matplotlib.colors.LogNorm()
     );
-    plt.xlabel("Gen {}".format(var_name))
+
+    if target=='cand':
+        plt.xlabel("Cand {}".format(var_name))
+    elif target=='gen':
+        plt.xlabel("Gen {}".format(var_name))
+
     plt.ylabel("MLPF {}".format(var_name))
 
     plt.savefig(fname + '.png')
     return fig
 
-def plot_distributions(val_x, val_y, var_name, rng, fname):
+def plot_distributions(val_x, val_y, var_name, rng, target, fname):
     fig = plt.figure(figsize=(5,5))
-    plt.hist(val_x, bins=rng, density=True, histtype="step", lw=2, label="gen");
+
+    if target=='cand':
+        plt.hist(val_x, bins=rng, density=True, histtype="step", lw=2, label="cand");
+    elif target=='gen':
+        plt.hist(val_x, bins=rng, density=True, histtype="step", lw=2, label="gen");
+
     plt.hist(val_y, bins=rng, density=True, histtype="step", lw=2, label="MLPF");
     plt.xlabel(var_name)
     plt.legend(loc="best", frameon=False)
@@ -138,7 +149,7 @@ def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
     plt.savefig(fname + '.png')
     return fig
 
-def make_plots(true_id, true_p4, pred_id, pred_p4, out):
+def make_plots(true_id, true_p4, pred_id, pred_p4, target, out):
 
     num_output_classes = len(class_labels)
 
@@ -152,11 +163,8 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, out):
         true_id,
         pred_id, labels = list(range(num_output_classes)), normalize="true")
 
-    figure = plot_confusion_matrix(cm)
-    #cm_image = plot_to_image(figure)
-
-    figure = plot_confusion_matrix(cm_normed)
-    #cm_image_normed = plot_to_image(figure)
+    figure = plot_confusion_matrix(cm, fname = out+'cm')
+    figure = plot_confusion_matrix(cm_normed, fname = out+'cm_normed')
 
     msk = (pred_id!=0) & (true_id!=0)
 
@@ -178,27 +186,27 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, out):
     cphi_true = true_p4[msk, 4].flatten().detach().numpy()
     cphi_pred = pred_p4[msk, 4].flatten().detach().numpy()
 
-    figure = plot_regression(ch_true, ch_pred, "charge", np.linspace(-2, 2, 100), fname = out+'charge_regression')
+    figure = plot_regression(ch_true, ch_pred, "charge", np.linspace(-2, 2, 100), target, fname = out+'charge_regression')
 
-    figure = plot_regression(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), fname = out+'pt_regression')
+    figure = plot_regression(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = out+'pt_regression')
 
-    figure = plot_distributions(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), fname = out+'pt_distribution')
+    figure = plot_distributions(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = out+'pt_distribution')
 
-    figure = plot_regression(e_true, e_pred, "E", np.linspace(-1, 5, 100), fname = out+'energy_regression')
+    figure = plot_regression(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = out+'energy_regression')
 
-    figure = plot_distributions(e_true, e_pred, "E", np.linspace(-1, 5, 100), fname = out+'energy_distribution')
+    figure = plot_distributions(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = out+'energy_distribution')
 
-    figure = plot_regression(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), fname = out+'eta_regression')
+    figure = plot_regression(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = out+'eta_regression')
 
-    figure = plot_distributions(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), fname = out+'eta_distribution')
+    figure = plot_distributions(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = out+'eta_distribution')
 
-    figure = plot_regression(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), fname = out+'sphi_regression')
+    figure = plot_regression(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = out+'sphi_regression')
 
-    figure = plot_distributions(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), fname = out+'sphi_distribution')
+    figure = plot_distributions(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = out+'sphi_distribution')
 
-    figure = plot_regression(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), fname = out+'cphi_regression')
+    figure = plot_regression(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = out+'cphi_regression')
 
-    figure = plot_distributions(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), fname = out+'cphi_distribution')
+    figure = plot_distributions(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = out+'cphi_distribution')
 
     figure = plot_particles( out+'particleID1', true_id, true_p4, pred_id, pred_p4, pid=1)
 
@@ -206,35 +214,39 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, out):
 
 
 def Evaluate(model, test_loader, path, target, device):
-    # TODO: make another for 'gen'
-    if target=='cand':
-        pred_id_all = []
-        pred_p4_all = []
-        new_edges_all = []
-        ycand_id_all = []
-        ycand_all = []
+    pred_id_all = []
+    pred_p4_all = []
+    new_edges_all = []
+    target_ids_all = []
+    target_p4_all = []
 
-        for batch in test_loader:
-            pred_id, pred_p4, new_edges = model(batch) #model(batch.to(device))
+    for batch in test_loader:
+        pred_id, pred_p4, new_edges = model(batch.to(device))
 
-            pred_id_all.append(pred_id.to('cpu'))
-            pred_p4_all.append(pred_p4.to('cpu'))
-            new_edges_all.append(new_edges.to('cpu'))
-            ycand_id_all.append(batch.ycand_id.to('cpu'))
-            ycand_all.append(batch.ycand.to('cpu'))
+        pred_id_all.append(pred_id.to(device))
+        pred_p4_all.append(pred_p4.to(device))
+        new_edges_all.append(new_edges.to(device))
 
-        pred_id = pred_id_all[0]
-        pred_p4 = pred_p4_all[0]
-        new_edges = new_edges_all[0]
-        ycand_id = ycand_id_all[0]
-        ycand = ycand_all[0]
+        if target=='cand':
+            target_ids_all.append(batch.ycand_id.to(device))
+            target_p4.append(batch.ycand.to(device))
 
-        for i in range(len(pred_id_all)-1):
-            pred_id = torch.cat((pred_id,pred_id_all[i+1]))
-            pred_p4 = torch.cat((pred_p4,pred_p4_all[i+1]))
-            ycand = torch.cat((ycand,ycand_all[i+1]))
-            ycand_id = torch.cat((ycand_id,ycand_id_all[i+1]))
+        elif target=='gen':
+            target_ids_all.append(batch.ygen_id.to(device))
+            target_p4_all.append(batch.ygen.to(device))
 
-        print('Making plots for evaluation..')
+    pred_id = pred_id_all[0]
+    pred_p4 = pred_p4_all[0]
+    new_edges = new_edges_all[0]
+    target_ids = target_ids_all[0]
+    target_p4 = target_p4_all[0]
 
-        make_plots(ycand_id, ycand, pred_id, pred_p4, out=path +'/')
+    for i in range(len(pred_id_all)-1):
+        pred_id = torch.cat((pred_id,pred_id_all[i+1]))
+        pred_p4 = torch.cat((pred_p4,pred_p4_all[i+1]))
+        target_ids = torch.cat((target_ids,target_ids_all[i+1]))
+        target_p4 = torch.cat((target_p4,target_p4_all[i+1]))
+
+    print('Making plots for evaluation..')
+
+    make_plots(target_ids, target_p4, pred_id, pred_p4, target, out=path + '/')
