@@ -144,6 +144,11 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     for i, batch in enumerate(loader):
         t0 = time.time()
 
+        print(batch)
+        print(batch.type())
+        print(batch[0])
+        print(len(batch))
+
         # for better reading of the code
         if args.target == "cand":
             X = batch.to(device)
