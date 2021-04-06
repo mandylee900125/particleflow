@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument("--outpath", type=str, default = '../../../test_tmp_delphes/experiments/', help="Output folder")
     parser.add_argument("--activation", type=str, default='leaky_relu', choices=["selu", "leaky_relu", "relu"], help="activation function")
     parser.add_argument("--optimizer", type=str, default='adam', choices=["adam", "adamw"], help="optimizer to use")
-    parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
+    parser.add_argument("--lr", type=float, default=1e-6, help="learning rate")
     parser.add_argument("--l1", type=float, default=1.0, help="Loss multiplier for pdg-id classification")
     parser.add_argument("--l2", type=float, default=0.001, help="Loss multiplier for momentum regression")
     parser.add_argument("--l3", type=float, default=1.0, help="Loss multiplier for clustering")
