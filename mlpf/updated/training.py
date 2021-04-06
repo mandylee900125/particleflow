@@ -144,11 +144,6 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     for i, batch in enumerate(loader):
         t0 = time.time()
 
-        print(batch)
-        print(batch.type())
-        print(batch[0])
-        print(len(batch))
-
         # for better reading of the code
         if args.target == "cand":
             X = batch.to(device)
@@ -322,7 +317,7 @@ if __name__ == "__main__":
     #         self.__dict__ = d
     #
     # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
     # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
