@@ -323,10 +323,12 @@ if __name__ == "__main__":
     # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
+    print('creating physics data objects')
     full_dataset_ttbar = PFGraphDataset(args.dataset)
     full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
 
     # constructs a loader from the data to iterate over batches
+    print('constructing data loaders')
     train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, batch_size=args.batch_size)
     test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
 
@@ -341,6 +343,7 @@ if __name__ == "__main__":
 
     model_classes = {"PFNet7": PFNet7}
 
+    print('initializing a model')
     model_class = model_classes[args.model]
     model_kwargs = {'input_dim': input_dim,
                     'hidden_dim': args.hidden_dim,
@@ -394,6 +397,7 @@ if __name__ == "__main__":
         print(model_fname)
 
         # train the model
+        print('begining training')
         model.train()
         train_loop()
 
