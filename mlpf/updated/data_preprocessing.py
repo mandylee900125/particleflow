@@ -28,7 +28,8 @@ def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
         valid_data = valid_data + valid_dataset[i]
 
     #hack for multi-gpu training
-    if not multi_gpu:
+    #if not multi_gpu:
+    if True:
         def collate(items):
             l = sum([items], [])
             return Batch.from_data_list(l)
@@ -55,7 +56,8 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
         test_data = test_data + test_dataset[i]
 
     #hack for multi-gpu training
-    if not multi_gpu:
+    #if not multi_gpu:
+    if True:
         def collate(items):
             l = sum([items], [])
             return Batch.from_data_list(l)
@@ -68,3 +70,67 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
     test_loader.collate_fn = collate
 
     return test_loader
+
+
+#
+# from graph_data_delphes import PFGraphDataset, one_hot_embedding
+# # the next part initializes some args values (to run the script not from terminal)
+# class objectview(object):
+#     def __init__(self, d):
+#         self.__dict__ = d
+#
+# args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+# 'batch_size': 24, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+# 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
+# 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
+# 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
+#
+# full_dataset = PFGraphDataset(args.dataset_qcd)
+#
+#
+# test_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=0, stop=args.n_test))
+#
+# # preprocessing the test_dataset in a good format for passing correct batches of events to the GNN
+# test_data=[]
+# for i in range(len(test_dataset)):
+#     test_data = test_data + test_dataset[i]
+#
+#
+# def collate(items):
+#     l = sum([items], [])
+#     return Batch.from_data_list(l)
+#
+# test_loader = DataListLoader(test_data, 4, pin_memory=True, shuffle=False)
+# test_loader.collate_fn = collate
+#
+#
+# for batch in test_loader:
+#     break
+#
+# batch
+#
+# batch.ycand
+#
+#
+# test_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=0, stop=args.n_test))
+#
+# # preprocessing the test_dataset in a good format for passing correct batches of events to the GNN
+# test_data=[]
+# for i in range(len(test_dataset)):
+#     test_data = test_data + test_dataset[i]
+#
+#
+# def collate(items):
+#     l = sum([items], [])
+#     return l
+#
+# test_loader_m = DataListLoader(test_data, 4, pin_memory=True, shuffle=False)
+# test_loader_m.collate_fn = collate
+#
+#
+#
+# for batch_m in test_loader_m:
+#     break
+#
+#
+# batch_m
