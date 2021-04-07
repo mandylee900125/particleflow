@@ -92,8 +92,10 @@ class PFNet7(nn.Module):
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
         # new_edge_index is of shape [2, big#]
         # x & x1 are of shape [~5000*batch_size, encoding_dim]
-        # new_edge_index, x = self.conv1(x)
-        # print(new_edge_index.shape)
+        new_edge_index, x = self.conv1(x)
+        print(new_edge_index.shape)
+        print(x.shape)
+        
         x1 = self.act_f(x)                 # act by nonlinearity
         print(x1.shape)
 
@@ -108,38 +110,37 @@ class PFNet7(nn.Module):
         # (2) pass them both to the NN
         cand_p4 = self.nn3(self.dropout1(nn3_input))
 
-        # return cand_ids, cand_p4, new_edge_index
-        return cand_ids, cand_p4, 0
+        return cand_ids, cand_p4, new_edge_index
 
 
 # -------------------------------------------------------------------------------------
-# # test a forward pass
-# from graph_data_delphes import PFGraphDataset
-# from data_preprocessing import data_to_loader_ttbar
-#
-# full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
-#
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=1 )
-#
-# print(next(iter(train_loader)))
-#
-# model = PFNet7()
-#
-# for batch in train_loader:
-#     cand_id_onehot, cand_momentum, new_edge_index = model(batch)
-#     break
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# batch
-# print(cand_id_onehot.shape)
-# print(cand_momentum.shape)
-# print(new_edge_index.shape)
-# print(new_edge_index)
+# test a forward pass
+from graph_data_delphes import PFGraphDataset
+from data_preprocessing import data_to_loader_ttbar
+
+full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
+
+train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=1 )
+
+print(next(iter(train_loader)))
+
+model = PFNet7()
+
+for batch in train_loader:
+    cand_id_onehot, cand_momentum, new_edge_index = model(batch)
+    break
+
+
+
+
+
+
+
+
+
+
+batch
+print(cand_id_onehot.shape)
+print(cand_momentum.shape)
+print(new_edge_index.shape)
+print(new_edge_index)
