@@ -88,8 +88,6 @@ class GravNetConv(MessagePassing):
         prop_feat = self.propagate(edge_index, x=to_propagate,
                                    edge_weight=distance_weight)
 
-        print('edge_index is:',  edge_index)
-
         return edge_index, self.lin_fout(torch.cat([prop_feat, x], dim=-1))
 
     def message(self, x_j, edge_weight):
