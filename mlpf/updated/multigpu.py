@@ -32,8 +32,6 @@ def cleanup():
     dist.destroy_process_group()
 
 
-
-
 class ToyModel(nn.Module):
     def __init__(self):
         super(ToyModel, self).__init__()
