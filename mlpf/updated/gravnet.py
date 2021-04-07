@@ -67,10 +67,13 @@ class GravNetConv(MessagePassing):
 
     def forward(self, x, batch=None):
         spatial = self.lin_s(x)
+        print('spatial is:',  spatial)
+        print('spatial is:',  spatial.type())
+
         to_propagate = self.lin_flr(x)
 
         if self.neighbor_algo == "knn":
-            edge_index = knn_graph(spatial, self.k, torch.zeros(spatial.shape[0], dtype=torch.int64).to(device), loop=False,
+            edge_index = knn_graph(spatial, self.k, batch, loop=False,
                                    flow=self.flow, cosine=False)
         elif self.neighbor_algo == "radius":
             edge_index = radius_graph(spatial, self.radius, torch.zeros(spatial.shape[0], dtype=torch.int64).to(device), loop=False,
