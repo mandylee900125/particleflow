@@ -88,6 +88,8 @@ class PFNet7(nn.Module):
         print(data)
         x = data.x
         print(x)
+        print(data[0])
+        print(data.type())
 
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
         # new_edge_index is of shape [2, big#]
