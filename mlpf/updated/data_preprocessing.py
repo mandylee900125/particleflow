@@ -37,9 +37,9 @@ def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
             l = sum([items], [])
             return l
 
-    train_loader = DataListLoader(train_data, batch_size, pin_memory=True, shuffle=True)
+    train_loader = DataListLoader(train_data, batch_size, pin_memory=True, shuffle=True, drop_last=True)
     train_loader.collate_fn = collate
-    valid_loader = DataListLoader(valid_data, batch_size, pin_memory=True, shuffle=False)
+    valid_loader = DataListLoader(valid_data, batch_size, pin_memory=True, shuffle=False, drop_last=True)
     valid_loader.collate_fn = collate
 
     return train_loader, valid_loader
@@ -64,7 +64,7 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
             l = sum([items], [])
             return l
 
-    test_loader = DataListLoader(test_data, batch_size, pin_memory=True, shuffle=False)
+    test_loader = DataListLoader(test_data, batch_size, pin_memory=True, shuffle=False, drop_last=True)
     test_loader.collate_fn = collate
 
     return test_loader
