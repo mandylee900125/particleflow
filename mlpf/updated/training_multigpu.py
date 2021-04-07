@@ -168,7 +168,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         # forwardprop
         cand_ids, cand_p4, new_edge_index = model(X)
-
+        print('yay')
     #     # BACKPROP
     #     # (1) Predictions where both the predicted and true class label was nonzero
     #     # In these cases, the true candidate existed and a candidate was predicted
