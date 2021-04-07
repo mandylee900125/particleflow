@@ -69,6 +69,8 @@ class GravNetConv(MessagePassing):
         spatial = self.lin_s(x)
         print('spatial is:',  spatial)
         print('spatial is:',  spatial.type())
+        print('spatial is:',  spatial[0])
+        print('spatial is:',  spatial[1])
 
         to_propagate = self.lin_flr(x)
 
