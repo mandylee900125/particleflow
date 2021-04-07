@@ -58,7 +58,7 @@ class GravNetConv(MessagePassing):
         self.lin_flr.reset_parameters()
         self.lin_fout.reset_parameters()
 
-    def forward(self, x, batch=torch.tensor([0, 1)):
+    def forward(self, x, batch=torch.tensor([0, 1])):
         spatial = self.lin_s(x)
         to_propagate = self.lin_flr(x)
 
