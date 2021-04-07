@@ -4,7 +4,7 @@ from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
-
+multi_gpu=0
 #define the global base device
 if use_gpu:
     device = torch.device('cuda:0')
@@ -131,9 +131,9 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #     break
 #
 #
-# batch_m
-#
-#
+# # batch_m
+# #
+# #
 # tot = full_dataset[0]+full_dataset[1]+full_dataset[2]
 # len(tot)
 #
@@ -171,4 +171,3 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #
 #     batch_m[0]
 #     batch[0]
-#
