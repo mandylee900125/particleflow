@@ -95,7 +95,7 @@ class PFNet7(nn.Module):
 
         #encode the inputs (x is of shape [~5000*batch_size, input_dim])
         print(data)
-        x = data[0].x.to(device)
+        x = data.x
         print(x)
 
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
