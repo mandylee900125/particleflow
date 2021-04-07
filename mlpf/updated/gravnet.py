@@ -67,11 +67,6 @@ class GravNetConv(MessagePassing):
 
     def forward(self, x, batch=None):
         spatial = self.lin_s(x)
-        print('spatial is:',  spatial)
-        print('spatial is:',  spatial.type())
-        print('spatial is:',  spatial[0])
-        print('spatial is:',  spatial[1])
-
         to_propagate = self.lin_flr(x)
 
         if self.neighbor_algo == "knn":
@@ -92,6 +87,8 @@ class GravNetConv(MessagePassing):
 
         prop_feat = self.propagate(edge_index, x=to_propagate,
                                    edge_weight=distance_weight)
+
+        print('edge_index is:',  edge_index)
 
         return edge_index, self.lin_fout(torch.cat([prop_feat, x], dim=-1))
 
