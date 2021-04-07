@@ -162,9 +162,9 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             target_p4 = batch.ycand.to(device)
 
         if args.target == "gen":
-            X = batch.to(device)
-            target_ids = batch.ygen_id.to(device)
-            target_p4 = batch.ygen.to(device)
+            X = [batch]
+            target_ids = batch.ygen_id
+            target_p4 = batch.ygen
 
         # forwardprop
         cand_ids, cand_p4, new_edge_index = model(X)
