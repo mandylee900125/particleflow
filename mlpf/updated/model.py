@@ -87,31 +87,24 @@ class PFNet7(nn.Module):
         #encode the inputs (x is of shape [~5000*batch_size, input_dim])
         print(data)
         x = data.x
-        print(x.shape)
+        print(x)
 
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
         # new_edge_index is of shape [2, big#]
         # x & x1 are of shape [~5000*batch_size, encoding_dim]
         new_edge_index, x = self.conv1(x)
-        print(new_edge_index.shape)
-        print('x is:')
-        print(x.shape)
-
         x1 = self.act_f(x)                 # act by nonlinearity
 
         #Decode convolved graph nodes to PID (after a dropout)
         # cand_ids is of shape [~5000*batch_size, 6]
         cand_ids = self.nn2(self.dropout1(x1))
-        print('cand_ids in the house:' , cand_ids.shape)
 
         #Decode convolved graph nodes to p4
         # (1) add the predicted PID along as it may help (why we concatenate)
         nn3_input = torch.cat([x1, cand_ids], axis=-1)
-        print('nn3_input in the house:' , nn3_input.shape)
+
         # (2) pass them both to the NN
         cand_p4 = self.nn3(self.dropout1(nn3_input))
-        print('cand_p4 in the house:' , cand_p4.shape)
-        print('yaya')
 
         return cand_ids, cand_p4, new_edge_index
 

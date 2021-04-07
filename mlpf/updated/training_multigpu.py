@@ -27,6 +27,7 @@ if use_gpu:
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
+device = torch.device('cpu')
 
 import torch_geometric
 import torch.nn as nn
@@ -167,8 +168,8 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             # target_p4 = batch.ygen
 
         # forwardprop
-        model(X)
-        print('yay')
+        cand_ids, cand_p4, new_edge_index = model(X)
+
     #     # BACKPROP
     #     # (1) Predictions where both the predicted and true class label was nonzero
     #     # In these cases, the true candidate existed and a candidate was predicted
