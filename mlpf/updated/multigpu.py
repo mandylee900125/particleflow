@@ -161,6 +161,8 @@ if __name__ == "__main__":
     if n_gpus < 2:
       print(f"Requires at least 2 GPUs to run, but got {n_gpus}.")
     else:
-      run_demo(demo_basic, 2)
-      run_demo(demo_checkpoint, 2)
-      run_demo(demo_model_parallel, 1)
+      # run_demo(demo_basic, 2)
+      # run_demo(demo_checkpoint, 2)
+      # run_demo(demo_model_parallel, 1)
+
+      demo_basic((2,), 2)
