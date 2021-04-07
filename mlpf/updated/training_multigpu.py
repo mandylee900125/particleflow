@@ -196,7 +196,6 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     #     t1 = time.time()
     #
     #     num_samples += len(cand_ids)
-         num_samples += 0
     #
     #     accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
     #     accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
@@ -226,6 +225,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     # losses_2 = np.mean(losses_2)
     # losses_tot = np.mean(losses_tot)
     losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix = 0,0,0,0,0,0,0
+    num_samples += 0
     return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix
 
 
