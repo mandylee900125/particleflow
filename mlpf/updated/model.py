@@ -95,7 +95,7 @@ class PFNet7(nn.Module):
         new_edge_index, x = self.conv1(x)
         print(new_edge_index.shape)
         print(x.shape)
-        
+
         x1 = self.act_f(x)                 # act by nonlinearity
         print(x1.shape)
 
@@ -114,33 +114,25 @@ class PFNet7(nn.Module):
 
 
 # -------------------------------------------------------------------------------------
-# test a forward pass
-from graph_data_delphes import PFGraphDataset
-from data_preprocessing import data_to_loader_ttbar
-
-full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
-
-train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=1 )
-
-print(next(iter(train_loader)))
-
-model = PFNet7()
-
-for batch in train_loader:
-    cand_id_onehot, cand_momentum, new_edge_index = model(batch)
-    break
-
-
-
-
-
-
-
-
-
-
-batch
-print(cand_id_onehot.shape)
-print(cand_momentum.shape)
-print(new_edge_index.shape)
-print(new_edge_index)
+# # test a forward pass
+# from graph_data_delphes import PFGraphDataset
+# from data_preprocessing import data_to_loader_ttbar
+#
+# full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
+#
+# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=1 )
+#
+# print(next(iter(train_loader)))
+#
+# model = PFNet7()
+#
+# for batch in train_loader:
+#     cand_id_onehot, cand_momentum, new_edge_index = model(batch)
+#     break
+#
+#
+# batch
+# print(cand_id_onehot.shape)
+# print(cand_momentum.shape)
+# print(new_edge_index.shape)
+# print(new_edge_index)
