@@ -7,20 +7,15 @@ import pandas as pd
 import pickle, math, time, numba, tqdm
 
 #Check if the GPU configuration has been provided
-import torch
-use_gpu = torch.cuda.device_count()>0
-multi_gpu = torch.cuda.device_count()>1
-
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
-        if multi_gpu:
-            print('Will use multi_gpu..')
-            print("Let's use", torch.cuda.device_count(), "GPUs!")
-        else:
-            print('Will use single_gpu..')
 except Exception as e:
     print("Could not import setGPU, running CPU-only")
+
+import torch
+use_gpu = torch.cuda.device_count()>0
+multi_gpu = torch.cuda.device_count()>1
 
 #define the global base device
 if use_gpu:
@@ -343,7 +338,6 @@ if __name__ == "__main__":
 
     model_classes = {"PFNet7": PFNet7}
 
-    print('initializing a model')
     model_class = model_classes[args.model]
     model_kwargs = {'input_dim': input_dim,
                     'hidden_dim': args.hidden_dim,
@@ -397,7 +391,6 @@ if __name__ == "__main__":
         print(model_fname)
 
         # train the model
-        print('begining training')
         model.train()
         train_loop()
 
