@@ -94,15 +94,14 @@ class PFNet7(nn.Module):
         # x & x1 are of shape [~5000*batch_size, encoding_dim]
         new_edge_index, x = self.conv1(x)
         print(new_edge_index.shape)
+        print('x is:')
         print(x.shape)
 
         x1 = self.act_f(x)                 # act by nonlinearity
-        print(x1.shape)
 
         #Decode convolved graph nodes to PID (after a dropout)
         # cand_ids is of shape [~5000*batch_size, 6]
         cand_ids = self.nn2(self.dropout1(x1))
-        print(cand_ids.shape)
 
         #Decode convolved graph nodes to p4
         # (1) add the predicted PID along as it may help (why we concatenate)
