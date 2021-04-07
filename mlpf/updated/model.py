@@ -102,12 +102,15 @@ class PFNet7(nn.Module):
         #Decode convolved graph nodes to PID (after a dropout)
         # cand_ids is of shape [~5000*batch_size, 6]
         cand_ids = self.nn2(self.dropout1(x1))
+        print('cand_ids in the house:' , cand_ids.shape)
 
         #Decode convolved graph nodes to p4
         # (1) add the predicted PID along as it may help (why we concatenate)
         nn3_input = torch.cat([x1, cand_ids], axis=-1)
+        print('nn3_input in the house:' , nn3_input.shape)
         # (2) pass them both to the NN
         cand_p4 = self.nn3(self.dropout1(nn3_input))
+        print('cand_p4 in the house:' , cand_p4.shape)
 
         return cand_ids, cand_p4, new_edge_index
 
