@@ -18,15 +18,6 @@ from torch.utils.data import random_split
 
 from gravnet import GravNetConv
 
-use_gpu = torch.cuda.device_count()>0
-multi_gpu = torch.cuda.device_count()>1
-
-#define the global base device
-if use_gpu:
-    device = torch.device('cuda:0')
-else:
-    device = torch.device('cpu')
-
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
@@ -94,9 +85,7 @@ class PFNet7(nn.Module):
     def forward(self, data):
 
         #encode the inputs (x is of shape [~5000*batch_size, input_dim])
-        print(data)
         x = data.x
-        print(x)
 
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
         # new_edge_index is of shape [2, big#]
