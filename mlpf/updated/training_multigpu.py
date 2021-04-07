@@ -27,7 +27,6 @@ if use_gpu:
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
-device = torch.device('cpu')
 
 import torch_geometric
 import torch.nn as nn
@@ -330,7 +329,7 @@ if __name__ == "__main__":
             self.__dict__ = d
 
     args = objectview({'train': True, 'n_train': 5, 'n_valid': 2, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-    'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
+    'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
     'outpath': '../../../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-6, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
     'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_5_nepochs_2', 'evaluate': False, 'evaluate_on_cpu': True})
