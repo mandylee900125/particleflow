@@ -53,7 +53,7 @@ from model import PFNet7
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
-from evaluate import make_plots, Evaluate
+from evaluate import make_plots, Evaluate, plot_confusion_matrix, plot_confusion_matrix_LGN
 
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
@@ -132,6 +132,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
     #epoch confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
+    conf_matrix_norm = np.zeros((output_dim_id, output_dim_id))
 
     #keep track of how many data points were processed
     num_samples = 0
@@ -196,8 +197,11 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         corrs_batch[i] = corr_pt
 
-        conf_matrix += confusion_matrix(target_ids_msk.detach().cpu().numpy(),
+        conf_matrix += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
                                         np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
+
+        conf_matrix_norm += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
+                                        np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6), normalize="true")
 
     corr = np.mean(corrs_batch)
 
@@ -208,6 +212,11 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
     losses_tot = np.mean(losses_tot)
+
+    plot_confusion_matrix_LGN(conf_matrix, fname= outpath + '/cm_LGN_epoch_' + str(epoch))
+    plot_confusion_matrix_LGN(conf_matrix_norm, fname = outpath + '/cm_LGN_normed_epoch_' + str(epoch))
+    plot_confusion_matrix_LGN(conf_matrix, fname= outpath + '/cm_epoch_' + str(epoch))
+    plot_confusion_matrix_LGN(conf_matrix_norm, fname = outpath + '/cm_normed_epoch_' + str(epoch))
 
     return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix
 
@@ -311,7 +320,7 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,

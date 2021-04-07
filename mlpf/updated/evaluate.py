@@ -42,6 +42,7 @@ import os.path as osp
 from plot_utils import plot_confusion_matrix, cms_label, particle_label, sample_label
 from plot_utils import plot_E_reso, plot_eta_reso, plot_phi_reso, bins
 import torch
+import seaborn as sns
 
 elem_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 class_labels = [0, 1, 2, 3, 4, 5]
@@ -90,7 +91,24 @@ def plot_confusion_matrix(cm, fname):
     plt.colorbar()
     plt.tight_layout()
     plt.savefig(fname + '.png')
+    plt.close(fig)
+
     return fig
+
+
+
+def plot_confusion_matrix_LGN(confusion_matrix, fname):
+    fig, ax = plt.subplots()
+    sns.heatmap(confusion_matrix, annot=True, ax = ax) #annot=True to annotate cells
+    ax.set_title('Confusion Matrix at Epoch')
+    ax.set_xlabel('Predicted labels')
+    ax.set_ylabel('True labels')
+    ax.xaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
+    ax.yaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
+    plt.savefig(fname + '.png')
+    plt.close(fig)
+
+
 
 def plot_regression(val_x, val_y, var_name, rng, target, fname):
     fig = plt.figure(figsize=(5,5))
@@ -110,6 +128,8 @@ def plot_regression(val_x, val_y, var_name, rng, target, fname):
     plt.ylabel("MLPF {}".format(var_name))
 
     plt.savefig(fname + '.png')
+    plt.close(fig)
+
     return fig
 
 def plot_distributions(val_x, val_y, var_name, rng, target, fname):
@@ -126,6 +146,8 @@ def plot_distributions(val_x, val_y, var_name, rng, target, fname):
     plt.ylim(0,1.5)
 
     plt.savefig(fname + '.png')
+    plt.close(fig)
+
     return fig
 
 def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
@@ -147,6 +169,8 @@ def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
     plt.ylim(-4,4)
 
     plt.savefig(fname + '.png')
+    plt.close(fig)
+
     return fig
 
 def make_plots(true_id, true_p4, pred_id, pred_p4, target, out):
