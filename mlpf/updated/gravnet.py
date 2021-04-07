@@ -8,7 +8,14 @@ try:
     from torch_cluster import radius_graph
 except ImportError:
     knn_graph = None
+use_gpu = torch.cuda.device_count()>0
+multi_gpu = torch.cuda.device_count()>1
 
+#define the global base device
+if use_gpu:
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
 
 class GravNetConv(MessagePassing):
     r"""The GravNet operator from the `"Learning Representations of Irregular
@@ -63,10 +70,10 @@ class GravNetConv(MessagePassing):
         to_propagate = self.lin_flr(x)
 
         if self.neighbor_algo == "knn":
-            edge_index = knn_graph(spatial, self.k, torch.zeros(spatial.shape[0], dtype=torch.int64), loop=False,
+            edge_index = knn_graph(spatial, self.k, torch.zeros(spatial.shape[0], dtype=torch.int64).to(device), loop=False,
                                    flow=self.flow, cosine=False)
         elif self.neighbor_algo == "radius":
-            edge_index = radius_graph(spatial, self.radius, torch.zeros(spatial.shape[0], dtype=torch.int64), loop=False,
+            edge_index = radius_graph(spatial, self.radius, torch.zeros(spatial.shape[0], dtype=torch.int64).to(device), loop=False,
                                    flow=self.flow, max_num_neighbors=self.k)
         else:
             raise Exception("Unknown neighbor algo {}".format(self.neighbor_algo))
