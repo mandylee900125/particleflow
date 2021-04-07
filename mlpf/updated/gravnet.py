@@ -58,15 +58,15 @@ class GravNetConv(MessagePassing):
         self.lin_flr.reset_parameters()
         self.lin_fout.reset_parameters()
 
-    def forward(self, x, batch=torch.tensor([0, 1])):
+    def forward(self, x, batch=None):
         spatial = self.lin_s(x)
         to_propagate = self.lin_flr(x)
 
         if self.neighbor_algo == "knn":
-            edge_index = knn_graph(spatial, self.k, batch, loop=False,
+            edge_index = knn_graph(spatial, self.k, torch.zeros(spatial.shape[0], dtype=torch.int64), loop=False,
                                    flow=self.flow, cosine=False)
         elif self.neighbor_algo == "radius":
-            edge_index = radius_graph(spatial, self.radius, batch, loop=False,
+            edge_index = radius_graph(spatial, self.radius, torch.zeros(spatial.shape[0], dtype=torch.int64), loop=False,
                                    flow=self.flow, max_num_neighbors=self.k)
         else:
             raise Exception("Unknown neighbor algo {}".format(self.neighbor_algo))
