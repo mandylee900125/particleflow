@@ -162,7 +162,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             target_p4 = batch.ycand.to(device)
 
         if args.target == "gen":
-            X = batch
+            X = batch.to(device)
             # target_ids = batch.ygen_id
             # target_p4 = batch.ygen
 
@@ -376,8 +376,8 @@ if __name__ == "__main__":
         model = model_class(**model_kwargs)
 
         if multi_gpu:
-            # model = torch_geometric.nn.DataParallel(model)
-            model = torch.nn.parallel.DistributedDataParallel(model)
+            model = torch_geometric.nn.DataParallel(model)
+            #model = torch.nn.parallel.DistributedDataParallel(model)
 
             print("Parallelizing the training..")
 
