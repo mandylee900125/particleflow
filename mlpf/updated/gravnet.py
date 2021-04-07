@@ -73,7 +73,7 @@ class GravNetConv(MessagePassing):
             edge_index = knn_graph(spatial, self.k, batch, loop=False,
                                    flow=self.flow, cosine=False)
         elif self.neighbor_algo == "radius":
-            edge_index = radius_graph(spatial, self.radius, torch.zeros(spatial.shape[0], dtype=torch.int64).to(device), loop=False,
+            edge_index = radius_graph(spatial, self.radius, batch, loop=False,
                                    flow=self.flow, max_num_neighbors=self.k)
         else:
             raise Exception("Unknown neighbor algo {}".format(self.neighbor_algo))
