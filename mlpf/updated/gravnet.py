@@ -58,7 +58,7 @@ class GravNetConv(MessagePassing):
         self.lin_flr.reset_parameters()
         self.lin_fout.reset_parameters()
 
-    def forward(self, x, batch=None):
+    def forward(self, x, batch=2):
         spatial = self.lin_s(x)
         to_propagate = self.lin_flr(x)
 
