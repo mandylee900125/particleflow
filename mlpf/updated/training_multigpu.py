@@ -162,69 +162,70 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             target_p4 = batch.ycand.to(device)
 
         if args.target == "gen":
-            X = [batch]
-            target_ids = batch.ygen_id
-            target_p4 = batch.ygen
+            X = batch
+            # target_ids = batch.ygen_id
+            # target_p4 = batch.ygen
 
         # forwardprop
         cand_ids, cand_p4, new_edge_index = model(X)
 
-        # BACKPROP
-        # (1) Predictions where both the predicted and true class label was nonzero
-        # In these cases, the true candidate existed and a candidate was predicted
-        # msk is a list of booleans of shape [~5000*batch_size] where each boolean correspond to whether a candidate was predicted
-        _, indices = torch.max(cand_ids, -1)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
-        _, target_ids_msk = torch.max(target_ids, -1)
-        msk = ((indices != 0) & (target_ids_msk != 0))
-        msk2 = ((indices != 0) & (indices == target_ids_msk))
-
-        # (2) computing losses
-        weights = compute_weights(torch.max(target_ids,-1)[1], device)
-        l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights)
-        l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])
-        loss = l1 + l2
-
-        losses_1.append(l1.item())
-        losses_2.append(l2.item())
-        losses_tot.append(loss.item())
-
-        if is_train:
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        t1 = time.time()
-
-        num_samples += len(cand_ids)
-
-        accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
-        accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
-        accuracies_batch_msk2.append(accuracy_score(target_ids_msk[msk2].detach().cpu().numpy(), indices[msk2].detach().cpu().numpy()))
-
-        print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
-
-        #Compute correlation of predicted and true pt values for monitoring
-        corr_pt = 0.0
-        if msk.sum()>0:
-            corr_pt = np.corrcoef(
-                cand_p4[msk, 0].detach().cpu().numpy(),
-                target_p4[msk, 0].detach().cpu().numpy())[0,1]
-
-        corrs_batch[i] = corr_pt
-
-        conf_matrix += confusion_matrix(target_ids_msk.detach().cpu().numpy(),
-                                        np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
-
-    corr = np.mean(corrs_batch)
-
-    acc = np.mean(accuracies_batch)
-    acc_msk = np.mean(accuracies_batch_msk)
-    acc_msk2 = np.mean(accuracies_batch_msk2)
-
-    losses_1 = np.mean(losses_1)
-    losses_2 = np.mean(losses_2)
-    losses_tot = np.mean(losses_tot)
-
+    #     # BACKPROP
+    #     # (1) Predictions where both the predicted and true class label was nonzero
+    #     # In these cases, the true candidate existed and a candidate was predicted
+    #     # msk is a list of booleans of shape [~5000*batch_size] where each boolean correspond to whether a candidate was predicted
+    #     _, indices = torch.max(cand_ids, -1)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
+    #     _, target_ids_msk = torch.max(target_ids, -1)
+    #     msk = ((indices != 0) & (target_ids_msk != 0))
+    #     msk2 = ((indices != 0) & (indices == target_ids_msk))
+    #
+    #     # (2) computing losses
+    #     weights = compute_weights(torch.max(target_ids,-1)[1], device)
+    #     l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights)
+    #     l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])
+    #     loss = l1 + l2
+    #
+    #     losses_1.append(l1.item())
+    #     losses_2.append(l2.item())
+    #     losses_tot.append(loss.item())
+    #
+    #     if is_train:
+    #         optimizer.zero_grad()
+    #         loss.backward()
+    #         optimizer.step()
+    #
+    #     t1 = time.time()
+    #
+    #     num_samples += len(cand_ids)
+          num_samples += 0
+    #
+    #     accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
+    #     accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
+    #     accuracies_batch_msk2.append(accuracy_score(target_ids_msk[msk2].detach().cpu().numpy(), indices[msk2].detach().cpu().numpy()))
+    #
+    #     print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
+    #
+    #     #Compute correlation of predicted and true pt values for monitoring
+    #     corr_pt = 0.0
+    #     if msk.sum()>0:
+    #         corr_pt = np.corrcoef(
+    #             cand_p4[msk, 0].detach().cpu().numpy(),
+    #             target_p4[msk, 0].detach().cpu().numpy())[0,1]
+    #
+    #     corrs_batch[i] = corr_pt
+    #
+    #     conf_matrix += confusion_matrix(target_ids_msk.detach().cpu().numpy(),
+    #                                     np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
+    #
+    # corr = np.mean(corrs_batch)
+    #
+    # acc = np.mean(accuracies_batch)
+    # acc_msk = np.mean(accuracies_batch_msk)
+    # acc_msk2 = np.mean(accuracies_batch_msk2)
+    #
+    # losses_1 = np.mean(losses_1)
+    # losses_2 = np.mean(losses_2)
+    # losses_tot = np.mean(losses_tot)
+    losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix = 0,0,0,0,0,0,0
     return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix
 
 
