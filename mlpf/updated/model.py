@@ -85,6 +85,8 @@ class PFNet7(nn.Module):
     def forward(self, data):
 
         #encode the inputs (x is of shape [~5000*batch_size, input_dim])
+        print(data)
+        print(data.x)
         x = data.x
 
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
