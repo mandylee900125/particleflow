@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument("--convlayer2", type=str, choices=["sgconv", "graphunet", "gatconv", "none"], help="Convolutional layer", default="none")
     parser.add_argument("--space_dim", type=int, default=2, help="Spatial dimension for clustering in gravnet layer")
     parser.add_argument("--nearest", type=int, default=3, help="k nearest neighbors in gravnet layer")
-    parser.add_argument("--overwrite", action='store_true', help="overwrite if model output exists")
+    parser.add_argument("--overwrite", action=BoolArg, default=False, help="Overwrites the model if True")
     parser.add_argument("--input_encoding", type=int, help="use an input encoding layer", default=0)
     parser.add_argument("--load", action=BoolArg, default=False, help="Load the model (no training)")
     parser.add_argument("--load_model", type=str, help="Which model to load", default="PFNet7_cand_ntrain_2")
