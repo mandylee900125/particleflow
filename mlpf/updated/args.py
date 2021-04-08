@@ -43,7 +43,12 @@ def parse_args():
     parser.add_argument("--load_epoch", type=float, default=0, help="Which epoch of the model to load for evaluation")
 
     # for evaluation
-    parser.add_argument("--evaluate", type=str, default=True, help="Evaluates the model on the test data")
+    #parser.add_argument("--evaluate", type=str, default=True, help="Evaluates the model on the test data")
+    parser.add_argument('--evaluate',
+                          help='This is a boolean flag.',
+                          type=eval,
+                          choices=[True, False],
+                          default='True')
     parser.add_argument("--evaluate_on_cpu", type=str, help="Check to evaluate on cpu", default=False)
 
     args = parser.parse_args()
