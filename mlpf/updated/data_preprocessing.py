@@ -71,10 +71,10 @@ else:
 #     return test_loader
 
 
-# https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 # define a function that casts the ttbar dataset into a dataloader for efficient NN training
 def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
 
+    # https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
     train_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=0, stop=n_train))
     valid_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=n_train, stop=n_train+n_valid))
 
@@ -139,5 +139,6 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #     break
 #
 # batch
+#
 # # batch is a column vector which maps each node to its respective graph in the batch:
 # batch.batch

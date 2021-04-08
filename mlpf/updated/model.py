@@ -13,7 +13,6 @@ from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 from torch_scatter import scatter_mean
 from torch_geometric.nn.inits import reset
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
-from torch_geometric.data import Data, DataListLoader, Batch
 from torch.utils.data import random_split
 
 from gravnet import GravNetConv
@@ -85,8 +84,6 @@ class PFNet7(nn.Module):
     def forward(self, data):
 
         #encode the inputs (x is of shape [~5000*batch_size, input_dim])
-        print(data)
-        print(data.x)
         x = data.x
 
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
