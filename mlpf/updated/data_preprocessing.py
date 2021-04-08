@@ -79,11 +79,11 @@ def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
     valid_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=n_train, stop=n_train+n_valid))
 
     #hack for multi-gpu training
-    if not multi_gpu:
+    if False:
         def collate(items):
             l = sum(items, [])
             return Batch.from_data_list(l)
-    else:
+    if True:
         def collate(items):
             l = sum(items, [])
             return l
@@ -110,27 +110,13 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
             l = sum(items, [])
             return l
 
-    test_loader = DataListLoader(test_data, batch_size, pin_memory=False, shuffle=False)
+    test_loader = DataListLoader(test_dataset, batch_size, pin_memory=False, shuffle=False)
     test_loader.collate_fn = collate
 
     return test_loader
 
-#
-# batch
-#
-#
-#
-#
-#
-#
-#
-#
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, args.n_train, args.n_valid, batch_size=args.batch_size)
-#
-#
-# for batch in test_loader:
-#      break
-# batch
+
+
 
 #
 #
