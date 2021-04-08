@@ -38,20 +38,13 @@ def parse_args():
     parser.add_argument("--nearest", type=int, default=3, help="k nearest neighbors in gravnet layer")
     parser.add_argument("--overwrite", action='store_true', help="overwrite if model output exists")
     parser.add_argument("--input_encoding", type=int, help="use an input encoding layer", default=0)
-    parser.add_argument("--load", type=str, help="Load the model (no training)", required=False, default=None)
+    parser.add_argument("--load", action=BoolArg, default=False, help="Load the model (no training)")
     parser.add_argument("--load_model", type=str, help="Which model to load", default="PFNet7_cand_ntrain_2")
     parser.add_argument("--load_epoch", type=float, default=0, help="Which epoch of the model to load for evaluation")
 
     # for evaluation
-    #parser.add_argument("--evaluate", type=str, default=True, help="Evaluates the model on the test data")
-    # parser.add_argument('--evaluate',
-    #                       help='This is a boolean flag.',
-    #                       type=eval,
-    #                       choices=[True, False],
-    #                       default='True')
-    parser.add_argument("--evaluate", action=BoolArg, default=True, help="Start training a model")
-
-    parser.add_argument("--evaluate_on_cpu", type=str, help="Check to evaluate on cpu", default=False)
+    parser.add_argument("--evaluate", action=BoolArg, default=True, help="Evaluate the model")
+    parser.add_argument("--evaluate_on_cpu", action=BoolArg, default=False, help="Check to evaluate on cpu")
 
     args = parser.parse_args()
 
