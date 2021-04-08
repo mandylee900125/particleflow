@@ -44,11 +44,13 @@ def parse_args():
 
     # for evaluation
     #parser.add_argument("--evaluate", type=str, default=True, help="Evaluates the model on the test data")
-    parser.add_argument('--evaluate',
-                          help='This is a boolean flag.',
-                          type=eval,
-                          choices=[True, False],
-                          default='True')
+    # parser.add_argument('--evaluate',
+    #                       help='This is a boolean flag.',
+    #                       type=eval,
+    #                       choices=[True, False],
+    #                       default='True')
+    parser.add_argument("--evaluate", action=BoolArg, default=True, help="Start training a model")
+
     parser.add_argument("--evaluate_on_cpu", type=str, help="Check to evaluate on cpu", default=False)
 
     args = parser.parse_args()
