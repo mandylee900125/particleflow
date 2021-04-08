@@ -118,14 +118,10 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         model.eval()
 
     #loss values for each batch: classification, regression
-    losses_1 = []
-    losses_2 = []
-    losses_tot = []
+    losses_1, losses_2, losses_tot = [], [], []
 
     #accuracy values for each batch (monitor classification performance)
-    accuracies_batch = []
-    accuracies_batch_msk = []
-    accuracies_batch_msk2 = []
+    accuracies_batch, accuracies_batch_msk = [], []
 
     #correlation values for each batch (monitor regression performance)
     corrs_batch = np.zeros(len(loader))
@@ -184,7 +180,6 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
         accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
-        accuracies_batch_msk2.append(accuracy_score(target_ids_msk[msk2].detach().cpu().numpy(), indices[msk2].detach().cpu().numpy()))
 
         print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
 
@@ -207,18 +202,12 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
     acc = np.mean(accuracies_batch)
     acc_msk = np.mean(accuracies_batch_msk)
-    acc_msk2 = np.mean(accuracies_batch_msk2)
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
     losses_tot = np.mean(losses_tot)
 
-    plot_confusion_matrix_LGN(conf_matrix, fname= outpath + '/cm_LGN_epoch_' + str(epoch))
-    plot_confusion_matrix_LGN(conf_matrix_norm, fname = outpath + '/cm_LGN_normed_epoch_' + str(epoch))
-    plot_confusion_matrix_LGN(conf_matrix, fname= outpath + '/cm_epoch_' + str(epoch))
-    plot_confusion_matrix_LGN(conf_matrix_norm, fname = outpath + '/cm_normed_epoch_' + str(epoch))
-
-    return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix
+    return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm
 
 
 def train_loop():
@@ -227,11 +216,8 @@ def train_loop():
     losses_1_train, losses_2_train, losses_tot_train = [], [], []
     losses_1_valid, losses_2_valid, losses_tot_valid  = [], [], []
 
-    accuracies_train, accuracies_msk_train, accuracies_msk2_train = [], [], []
-    accuracies_valid, accuracies_msk_valid, accuracies_msk2_valid = [], [], []
-
-    conf_matrix_train = np.zeros((output_dim_id, output_dim_id))
-    conf_matrix_valid = np.zeros((output_dim_id, output_dim_id))
+    accuracies_train, accuracies_msk_train = [], []
+    accuracies_valid, accuracies_msk_valid = [], []
 
     best_val_loss = 99999.9
     stale_epochs = 0
@@ -246,7 +232,7 @@ def train_loop():
 
         # training epoch
         model.train()
-        num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, acc_msk2, conf_matrix = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
+        num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
 
         losses_tot_train.append(losses_tot)
         losses_1_train.append(losses_1)
@@ -254,13 +240,10 @@ def train_loop():
 
         accuracies_train.append(acc)
         accuracies_msk_train.append(acc_msk)
-        accuracies_msk2_train.append(acc_msk2)
-
-        conf_matrix_train += conf_matrix
 
         # validation step
         model.eval()
-        num_samples_val, losses_tot_v, losses_1_v, losses_2_v, acc_v, acc_msk_v, acc_msk2_v, conf_matrix_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
+        num_samples_val, losses_tot_v, losses_1_v, losses_2_v, acc_v, acc_msk_v, conf_matrix_v, conf_matrix_norm_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
 
         losses_tot_valid.append(losses_tot_v)
         losses_1_valid.append(losses_1_v)
@@ -268,9 +251,6 @@ def train_loop():
 
         accuracies_valid.append(acc_v)
         accuracies_msk_valid.append(acc_msk_v)
-        accuracies_msk2_valid.append(acc_msk2_v)
-
-        conf_matrix_valid += conf_matrix_v
 
         # early-stopping
         if losses_tot_v < best_val_loss:
@@ -285,12 +265,22 @@ def train_loop():
         time_per_epoch = (t1 - t0_initial)/(epoch + 1)
         eta = epochs_remaining*time_per_epoch/60
 
-        print("epoch={}/{} dt={:.2f}min train_loss={:.5f} valid_loss={:.5f} train_acc={:.5f} valid_acc={:.5f} stale={} eta={:.1f}m".format(
+        print("epoch={}/{} dt={:.2f}min train_loss={:.5f} valid_loss={:.5f} train_acc={:.5f} valid_acc={:.5f} train_acc_msk={:.5f} valid_acc_msk={:.5f} stale={} eta={:.1f}m".format(
             epoch+1, args.n_epochs,
             (t1-t0)/60, losses_tot_train[epoch], losses_tot_valid[epoch], accuracies_train[epoch], accuracies_valid[epoch],
-            stale_epochs, eta))
+            accuracies_msk_train[epoch], accuracies_msk_valid[epoch], stale_epochs, eta))
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
+
+        plot_confusion_matrix_LGN(conf_matrix, fname= outpath + '/cmT_LGN_epoch_' + str(epoch))
+        plot_confusion_matrix_LGN(conf_matrix_norm, fname = outpath + '/cmT_LGN_normed_epoch_' + str(epoch))
+        plot_confusion_matrix(conf_matrix, fname= outpath + '/cmT_epoch_' + str(epoch))
+        plot_confusion_matrix(conf_matrix_norm, fname = outpath + '/cmT_normed_epoch_' + str(epoch))
+
+        plot_confusion_matrix_LGN(conf_matrix_v, fname= outpath + '/cmV_LGN_epoch_' + str(epoch))
+        plot_confusion_matrix_LGN(conf_matrix_norm_v, fname = outpath + '/cmV_LGN_normed_epoch_' + str(epoch))
+        plot_confusion_matrix(conf_matrix_v, fname= outpath + '/cmV_epoch_' + str(epoch))
+        plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/cmV_normed_epoch_' + str(epoch))
 
     make_plot_from_list(losses_tot_train, 'train loss_tot', 'Epochs', 'Loss', outpath, 'losses_tot_train')
     make_plot_from_list(losses_1_train, 'train loss_1', 'Epochs', 'Loss', outpath, 'losses_1_train')
@@ -302,11 +292,9 @@ def train_loop():
 
     make_plot_from_list(accuracies_train, 'train accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_train')
     make_plot_from_list(accuracies_msk_train, 'train accuracy_msk', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_train')
-    make_plot_from_list(accuracies_msk2_train, 'train accuracy_msk2', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_train')
 
     make_plot_from_list(accuracies_valid, 'valid accuracy', 'Epochs', 'Accuracy', outpath, 'accuracies_valid')
     make_plot_from_list(accuracies_msk_valid, 'valid accuracy_msk', 'Epochs', 'Accuracy', outpath, 'accuracies_msk_valid')
-    make_plot_from_list(accuracies_msk2_valid, 'valid accuracy_msk2', 'Epochs', 'Accuracy', outpath, 'accuracies_msk2_valid')
 
     print('Done with training.')
 
@@ -320,7 +308,7 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    # args = objectview({'train': True, 'n_train': 2, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
