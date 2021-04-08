@@ -75,21 +75,26 @@ else:
 # define a function that casts the ttbar dataset into a dataloader for efficient NN training
 def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
 
-    train_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=0, stop=n_train))
-    valid_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=n_train, stop=n_train+n_valid))
+        train_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=0, stop=n_train))
+        valid_dataset = torch.utils.data.Subset(full_dataset, np.arange(start=n_train, stop=n_train+n_valid))
 
-    # preprocessing the train_dataset in a good format for passing correct batches of events to the GNN
-    train_data=[]
-    for i in range(len(train_dataset)):
-        train_data = train_data + train_dataset[i]
+        # preprocessing the train_dataset in a good format for passing correct batches of events to the GNN
+        train_data=[]
+        for i in range(len(train_dataset)):
+            train_data = train_data + train_dataset[i]
 
-    # preprocessing the valid_dataset in a good format for passing correct batches of events to the GNN
-    valid_data=[]
-    for i in range(len(valid_dataset)):
-        valid_data = valid_data + valid_dataset[i]
+        # preprocessing the valid_dataset in a good format for passing correct batches of events to the GNN
+        valid_data=[]
+        for i in range(len(valid_dataset)):
+            valid_data = valid_data + valid_dataset[i]
 
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_data, batch_size=batch_size, shuffle=True)
+    if not multi_gpu:
+        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+        valid_loader = DataLoader(valid_data, batch_size=batch_size, shuffle=True)
+    else:
+        #https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/data_parallel.html
+        train_loader = DataListLoader(train_data, batch_size=batch_size, shuffle=True)
+        valid_loader = DataListLoader(valid_data, batch_size=batch_size, shuffle=True)
 
     return train_loader, valid_loader
 
@@ -102,7 +107,11 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
     for i in range(len(test_dataset)):
         test_data = test_data + test_dataset[i]
 
-    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
+    if not multi_gpu:
+        test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
+    else:
+        #https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/data_parallel.html
+        test_loader = DataListLoader(test_data, batch_size=batch_size, shuffle=True)
 
     return test_loader
 
@@ -130,5 +139,5 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #     break
 #
 # batch
-## batch is a column vector which maps each node to its respective graph in the batch:
-# batch.batch 
+# # batch is a column vector which maps each node to its respective graph in the batch:
+# batch.batch
