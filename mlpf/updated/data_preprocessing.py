@@ -72,8 +72,6 @@ else:
 
 
 
-
-
 # define a function that casts the ttbar dataset into a dataloader for efficient NN training
 def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
 
@@ -90,9 +88,9 @@ def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
             l = sum(items, [])
             return l
 
-    train_loader = DataListLoader(train_dataset, batch_size=args.batch_size, pin_memory=False, shuffle=False)
+    train_loader = DataListLoader(train_dataset, batch_size=batch_size, pin_memory=False, shuffle=False)
     train_loader.collate_fn = collate
-    valid_loader = DataListLoader(valid_dataset, batch_size=args.batch_size, pin_memory=False, shuffle=False)
+    valid_loader = DataListLoader(valid_dataset, batch_size=batch_size, pin_memory=False, shuffle=False)
     valid_loader.collate_fn = collate
 
     return train_loader, valid_loader
@@ -117,15 +115,15 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 
     return test_loader
 
-
-
-
-
-
-
-
-
-
+#
+# batch
+#
+#
+#
+#
+#
+#
+#
 #
 # train_loader, valid_loader = data_to_loader_ttbar(full_dataset, args.n_train, args.n_valid, batch_size=args.batch_size)
 #
@@ -133,7 +131,7 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 # for batch in test_loader:
 #      break
 # batch
-#
+
 #
 #
 # from graph_data_delphes import PFGraphDataset, one_hot_embedding
