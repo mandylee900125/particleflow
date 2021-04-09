@@ -80,36 +80,6 @@ def energy_resolution(true_id, true_p4, pred_id, pred_p4):
 
     return mse_unreduced(true_p4[msk], pred_p4[msk])
 
-def plot_confusion_matrix(cm, fname):
-    fig = plt.figure(figsize=(5,5))
-    plt.imshow(cm, cmap="Blues")
-    plt.title("Reconstructed PID (normed to gen)")
-    plt.xlabel("MLPF PID")
-    plt.ylabel("Gen PID")
-    plt.xticks(range(6), ["none", "ch.had", "n.had", "g", "el", "mu"]);
-    plt.yticks(range(6), ["none", "ch.had", "n.had", "g", "el", "mu"]);
-    plt.colorbar()
-    plt.tight_layout()
-    plt.savefig(fname + '.png')
-    plt.close(fig)
-
-    return fig
-
-
-
-def plot_confusion_matrix_LGN(confusion_matrix, fname):
-    fig, ax = plt.subplots()
-    sns.heatmap(confusion_matrix, annot=True, ax = ax) #annot=True to annotate cells
-    ax.set_title('Confusion Matrix at Epoch')
-    ax.set_xlabel('Predicted labels')
-    ax.set_ylabel('True labels')
-    ax.xaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
-    ax.yaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
-    plt.savefig(fname + '.png')
-    plt.close(fig)
-
-
-
 def plot_regression(val_x, val_y, var_name, rng, target, fname):
     fig = plt.figure(figsize=(5,5))
     plt.hist2d(
@@ -173,22 +143,32 @@ def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
 
     return fig
 
+def plot_confusion_matrix(confusion_matrix, fname, epoch):
+    fig, ax = plt.subplots()
+    sns.heatmap(confusion_matrix, annot=True, ax = ax) #annot=True to annotate cells
+    ax.set_title('Reconstructed PID (normed to gen) at epoch' + str(epoch))
+    ax.set_xlabel('MLPF PID')
+    ax.set_ylabel('Gen PID')
+    ax.xaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
+    ax.yaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
+    plt.savefig(fname + '.png')
+    plt.close(fig)
+
+    return fig
+
 def make_plots(true_id, true_p4, pred_id, pred_p4, target, out):
 
-    num_output_classes = len(class_labels)
+    conf_matrix = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
+                                    np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6))
+
+    conf_matrix_norm = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
+                                    np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6), normalize="true")
+
+    plot_confusion_matrix(conf_matrix, fname = out+'conf_matrix', epoch=-1)
+    plot_confusion_matrix(conf_matrix_norm, fname = out+'conf_matrix_norm', epoch=-1)
 
     _, true_id = torch.max(true_id, -1)
     _, pred_id = torch.max(pred_id, -1)
-
-    cm = sklearn.metrics.confusion_matrix(
-        true_id,
-        pred_id, labels = list(range(num_output_classes)))
-    cm_normed = sklearn.metrics.confusion_matrix(
-        true_id,
-        pred_id, labels = list(range(num_output_classes)), normalize="true")
-
-    figure = plot_confusion_matrix(cm, fname = out+'cm')
-    figure = plot_confusion_matrix(cm_normed, fname = out+'cm_normed')
 
     msk = (pred_id!=0) & (true_id!=0)
 
@@ -247,17 +227,13 @@ def Evaluate(model, test_loader, path, target, device):
     for batch in test_loader:
         pred_id, pred_p4, new_edges = model(batch.to(device))
 
-        pred_id_all.append(pred_id.to(device))
-        pred_p4_all.append(pred_p4.to(device))
-        new_edges_all.append(new_edges.to(device))
+        pred_id_all.append(pred_id.detach().cpu())
+        pred_p4_all.append(pred_p4.detach().cpu())
+        new_edges_all.append(new_edges.detach().cpu())
 
-        if target=='cand':
-            target_ids_all.append(batch.ycand_id.to(device))
-            target_p4.append(batch.ycand.to(device))
 
-        elif target=='gen':
-            target_ids_all.append(batch.ygen_id.to(device))
-            target_p4_all.append(batch.ygen.to(device))
+        target_ids_all.append(batch.ygen_id.detach().cpu())
+        target_p4_all.append(batch.ygen.detach().cpu())
 
     pred_id = pred_id_all[0]
     pred_p4 = pred_p4_all[0]

@@ -53,24 +53,26 @@ from model import PFNet7
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
-from evaluate import make_plots, Evaluate, plot_confusion_matrix, plot_confusion_matrix_LGN
+from evaluate import make_plots, Evaluate, plot_confusion_matrix
 
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
     model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
     model_user = os.environ['USER']
 
-    model_fname = '{}_{}_ntrain_{}_nepochs_{}'.format(
+    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}'.format(
         model_name,
         target_type,
         n_train,
-        n_epochs)
+        n_epochs,
+        batch_size,
+        lr)
     return model_fname
 
 def mse_loss(input, target):
@@ -128,7 +130,6 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
     #epoch confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
-    conf_matrix_norm = np.zeros((output_dim_id, output_dim_id))
 
     #keep track of how many data points were processed
     num_samples = 0
@@ -161,8 +162,8 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         # (2) computing losses
         weights = compute_weights(torch.max(target_ids,-1)[1], device)
-        l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights)
-        l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])
+        l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights) # for classifying PID
+        l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
         loss = l1 + l2
 
         losses_1.append(l1.item())
@@ -195,17 +196,16 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         conf_matrix += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
                                         np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
 
-        conf_matrix_norm += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
-                                        np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6), normalize="true")
-
     corr = np.mean(corrs_batch)
-
-    acc = np.mean(accuracies_batch)
-    acc_msk = np.mean(accuracies_batch_msk)
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
     losses_tot = np.mean(losses_tot)
+
+    acc = np.mean(accuracies_batch)
+    acc_msk = np.mean(accuracies_batch_msk)
+
+    conf_matrix_norm = conf_matrix / conf_matrix.sum(axis=1)[:, np.newaxis]
 
     return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm
 
@@ -272,15 +272,11 @@ def train_loop():
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
 
-        plot_confusion_matrix_LGN(conf_matrix, fname= outpath + '/cmT_LGN_epoch_' + str(epoch))
-        plot_confusion_matrix_LGN(conf_matrix_norm, fname = outpath + '/cmT_LGN_normed_epoch_' + str(epoch))
-        plot_confusion_matrix(conf_matrix, fname= outpath + '/cmT_epoch_' + str(epoch))
-        plot_confusion_matrix(conf_matrix_norm, fname = outpath + '/cmT_normed_epoch_' + str(epoch))
+        plot_confusion_matrix(conf_matrix, fname= outpath + '/confusion_matrix_plots/cmT_epoch_' + str(epoch), epoch=epoch)
+        plot_confusion_matrix(conf_matrix_norm, fname = outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch), epoch=epoch)
 
-        plot_confusion_matrix_LGN(conf_matrix_v, fname= outpath + '/cmV_LGN_epoch_' + str(epoch))
-        plot_confusion_matrix_LGN(conf_matrix_norm_v, fname = outpath + '/cmV_LGN_normed_epoch_' + str(epoch))
-        plot_confusion_matrix(conf_matrix_v, fname= outpath + '/cmV_epoch_' + str(epoch))
-        plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/cmV_normed_epoch_' + str(epoch))
+        plot_confusion_matrix(conf_matrix_v, fname= outpath + '/confusion_matrix_plots/cmV_epoch_' + str(epoch), epoch=epoch)
+        plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
 
     make_plot_from_list(losses_tot_train, 'train loss_tot', 'Epochs', 'Loss', outpath, 'losses_tot_train')
     make_plot_from_list(losses_1_train, 'train loss_1', 'Epochs', 'Loss', outpath, 'losses_1_train')
@@ -298,6 +294,7 @@ def train_loop():
 
     print('Done with training.')
 
+    return
 
 if __name__ == "__main__":
 
@@ -308,19 +305,19 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 2, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    # args = objectview({'train': True, 'n_train': 2, 'n_valid': 3, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
     # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
-    print('creating physics data objects')
+    print('Creating physics data objects..')
     full_dataset_ttbar = PFGraphDataset(args.dataset)
     full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
 
     # constructs a loader from the data to iterate over batches
-    print('constructing data loaders')
+    print('Constructing data loaders..')
     train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, batch_size=args.batch_size)
     test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
 
@@ -352,6 +349,7 @@ if __name__ == "__main__":
 
     if args.train:
         #instantiate the model
+        print('Instantiating a model..')
         model = model_class(**model_kwargs)
 
         if multi_gpu:
@@ -360,7 +358,7 @@ if __name__ == "__main__":
 
         model.to(device)
 
-        model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target)
+        model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size)
 
         outpath = osp.join(args.outpath, model_fname)
         if osp.isdir(outpath):
@@ -378,6 +376,9 @@ if __name__ == "__main__":
 
         with open('{}/model_kwargs.pkl'.format(outpath), 'wb') as f:
             pickle.dump(model_kwargs, f,  protocol=pickle.HIGHEST_PROTOCOL)
+
+        if not os.path.exists(outpath + '/confusion_matrix_plots/'):
+            os.makedirs(outpath + '/confusion_matrix_plots/')
 
         if args.optimizer == "adam":
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -406,3 +407,101 @@ if __name__ == "__main__":
         model.eval()
 
         Evaluate(model, test_loader, outpath, args.target, device)
+
+#
+#
+# is_train = not (optimizer is None)
+#
+# if is_train:
+#     model.train()
+# else:
+#     model.eval()
+#
+# #loss values for each batch: classification, regression
+# losses_1, losses_2, losses_tot = [], [], []
+#
+# #accuracy values for each batch (monitor classification performance)
+# accuracies_batch, accuracies_batch_msk = [], []
+#
+# #correlation values for each batch (monitor regression performance)
+# corrs_batch = np.zeros(len(valid_loader))
+#
+# #epoch confusion matrix
+# conf_matrix = np.zeros((output_dim_id, output_dim_id))
+#
+# #keep track of how many data points were processed
+# num_samples = 0
+#
+# for i, batch in enumerate(valid_loader):
+#     t0 = time.time()
+#
+#     if args.target == "gen":
+#         X = batch.to(device)
+#         target_ids = batch.ygen_id.to(device)
+#         target_p4 = batch.ygen.to(device)
+#
+#     # forwardprop
+#     cand_ids, cand_p4, new_edge_index = model(X)
+#
+#     # BACKPROP
+#     # (1) Predictions where both the predicted and true class label was nonzero
+#     # In these cases, the true candidate existed and a candidate was predicted
+#     # msk is a list of booleans of shape [~5000*batch_size] where each boolean correspond to whether a candidate was predicted
+#     _, indices = torch.max(cand_ids, -1)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
+#     _, target_ids_msk = torch.max(target_ids, -1)
+#     msk = ((indices != 0) & (target_ids_msk != 0))
+#     msk2 = ((indices != 0) & (indices == target_ids_msk))
+#
+#     # (2) computing losses
+#     weights = compute_weights(torch.max(target_ids,-1)[1], device)
+#     l1 = 1 * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights)
+#     l2 = 1 * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])
+#     loss = l1 + l2
+#
+#     losses_1.append(l1.item())
+#     losses_2.append(l2.item())
+#     losses_tot.append(loss.item())
+#
+#     t1 = time.time()
+#
+#     num_samples += len(cand_ids)
+#
+#     accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
+#     accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
+#
+#     print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(valid_loader), loss.item(), t1-t0), end='\r', flush=True)
+#
+#     #Compute correlation of predicted and true pt values for monitoring
+#     corr_pt = 0.0
+#     if msk.sum()>0:
+#         corr_pt = np.corrcoef(
+#             cand_p4[msk, 0].detach().cpu().numpy(),
+#             target_p4[msk, 0].detach().cpu().numpy())[0,1]
+#
+#     corrs_batch[i] = corr_pt
+#
+#     conf_matrix += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
+#                                     np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
+#
+#     break
+#
+#
+#
+# conf_matrix
+#
+#
+#
+#
+#
+#
+#
+# corr = np.mean(corrs_batch)
+#
+# losses_1 = np.mean(losses_1)
+# losses_2 = np.mean(losses_2)
+# losses_tot = np.mean(losses_tot)
+#
+# acc = np.mean(accuracies_batch)
+# acc_msk = np.mean(accuracies_batch_msk)
+#
+# conf_matrix_norm = conf_matrix / conf_matrix.sum(axis=1)[:, np.newaxis]
