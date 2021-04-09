@@ -308,7 +308,7 @@ def train_loop():
 
 if __name__ == "__main__":
 
-    #args = parse_args()
+    args = parse_args()
 
     # # the next part initializes some args values (to run the script not from terminal)
     # class objectview(object):
