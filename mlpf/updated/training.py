@@ -275,8 +275,18 @@ def train_loop():
         plot_confusion_matrix(conf_matrix, fname= outpath + '/confusion_matrix_plots/cmT_epoch_' + str(epoch), epoch=epoch)
         plot_confusion_matrix(conf_matrix_norm, fname = outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch), epoch=epoch)
 
+        with open(outpath + '/confusion_matrix_plots/cmT_epoch_' + str(epoch) + '.pkl', 'wb') as f:
+            pickle.dump(conf_matrix, f)
+        with open(outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
+            pickle.dump(conf_matrix_norm, f)
+
         plot_confusion_matrix(conf_matrix_v, fname= outpath + '/confusion_matrix_plots/cmV_epoch_' + str(epoch), epoch=epoch)
         plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
+
+        with open(outpath + '/confusion_matrix_plots/cmV_epoch_' + str(epoch) + '.pkl', 'wb') as f:
+            pickle.dump(conf_matrix_v, f)
+        with open(outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
+            pickle.dump(conf_matrix_norm_v, f)
 
     make_plot_from_list(losses_tot_train, 'train loss_tot', 'Epochs', 'Loss', outpath, 'losses_tot_train')
     make_plot_from_list(losses_1_train, 'train loss_1', 'Epochs', 'Loss', outpath, 'losses_1_train')
@@ -298,7 +308,7 @@ def train_loop():
 
 if __name__ == "__main__":
 
-    args = parse_args()
+    #args = parse_args()
 
     # # the next part initializes some args values (to run the script not from terminal)
     # class objectview(object):
@@ -309,7 +319,7 @@ if __name__ == "__main__":
     # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
+    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Creating physics data objects..')
@@ -393,6 +403,7 @@ if __name__ == "__main__":
         train_loop()
 
     elif args.load:
+            print('Loading a previously trained model..')
             model = model_class(**model_kwargs)
             outpath = args.outpath + args.load_model
             PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
@@ -406,102 +417,13 @@ if __name__ == "__main__":
         model = model.to(device)
         model.eval()
 
-        Evaluate(model, test_loader, outpath, args.target, device)
+        if args.train:
+            Evaluate(model, test_loader, outpath, args.target, device, args.n_epochs)
+        elif args.load:
+            Evaluate(model, test_loader, outpath, args.target, device, args.load_epoch)
 
-#
-#
-# is_train = not (optimizer is None)
-#
-# if is_train:
-#     model.train()
-# else:
-#     model.eval()
-#
-# #loss values for each batch: classification, regression
-# losses_1, losses_2, losses_tot = [], [], []
-#
-# #accuracy values for each batch (monitor classification performance)
-# accuracies_batch, accuracies_batch_msk = [], []
-#
-# #correlation values for each batch (monitor regression performance)
-# corrs_batch = np.zeros(len(valid_loader))
-#
-# #epoch confusion matrix
-# conf_matrix = np.zeros((output_dim_id, output_dim_id))
-#
-# #keep track of how many data points were processed
-# num_samples = 0
-#
-# for i, batch in enumerate(valid_loader):
-#     t0 = time.time()
-#
-#     if args.target == "gen":
-#         X = batch.to(device)
-#         target_ids = batch.ygen_id.to(device)
-#         target_p4 = batch.ygen.to(device)
-#
-#     # forwardprop
-#     cand_ids, cand_p4, new_edge_index = model(X)
-#
-#     # BACKPROP
-#     # (1) Predictions where both the predicted and true class label was nonzero
-#     # In these cases, the true candidate existed and a candidate was predicted
-#     # msk is a list of booleans of shape [~5000*batch_size] where each boolean correspond to whether a candidate was predicted
-#     _, indices = torch.max(cand_ids, -1)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
-#     _, target_ids_msk = torch.max(target_ids, -1)
-#     msk = ((indices != 0) & (target_ids_msk != 0))
-#     msk2 = ((indices != 0) & (indices == target_ids_msk))
-#
-#     # (2) computing losses
-#     weights = compute_weights(torch.max(target_ids,-1)[1], device)
-#     l1 = 1 * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights)
-#     l2 = 1 * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])
-#     loss = l1 + l2
-#
-#     losses_1.append(l1.item())
-#     losses_2.append(l2.item())
-#     losses_tot.append(loss.item())
-#
-#     t1 = time.time()
-#
-#     num_samples += len(cand_ids)
-#
-#     accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
-#     accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
-#
-#     print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(valid_loader), loss.item(), t1-t0), end='\r', flush=True)
-#
-#     #Compute correlation of predicted and true pt values for monitoring
-#     corr_pt = 0.0
-#     if msk.sum()>0:
-#         corr_pt = np.corrcoef(
-#             cand_p4[msk, 0].detach().cpu().numpy(),
-#             target_p4[msk, 0].detach().cpu().numpy())[0,1]
-#
-#     corrs_batch[i] = corr_pt
-#
-#     conf_matrix += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
-#                                     np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
-#
-#     break
-#
-#
-#
-# conf_matrix
-#
-#
-#
-#
-#
-#
-#
-# corr = np.mean(corrs_batch)
-#
-# losses_1 = np.mean(losses_1)
-# losses_2 = np.mean(losses_2)
-# losses_tot = np.mean(losses_tot)
-#
-# acc = np.mean(accuracies_batch)
-# acc_msk = np.mean(accuracies_batch_msk)
-#
-# conf_matrix_norm = conf_matrix / conf_matrix.sum(axis=1)[:, np.newaxis]
+## -----------------------------------------------------------
+# # to retrieve a stored variable in pkl file
+# import pickle
+# with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     a = pickle.load(f)

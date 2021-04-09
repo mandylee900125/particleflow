@@ -156,7 +156,7 @@ def plot_confusion_matrix(confusion_matrix, fname, epoch):
 
     return fig
 
-def make_plots(true_id, true_p4, pred_id, pred_p4, target, out):
+def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
 
     conf_matrix = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
                                     np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6))
@@ -164,8 +164,13 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, target, out):
     conf_matrix_norm = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
                                     np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6), normalize="true")
 
-    plot_confusion_matrix(conf_matrix, fname = out+'conf_matrix', epoch=-1)
-    plot_confusion_matrix(conf_matrix_norm, fname = out+'conf_matrix_norm', epoch=-1)
+    plot_confusion_matrix(conf_matrix, fname = outpath+'conf_matrix_test' + str(epoch), epoch=epoch)
+    plot_confusion_matrix(conf_matrix_norm, fname = outpath+'conf_matrix_norm_test' + str(epoch), epoch=epoch)
+
+    with open(outpath + '/conf_matrix_test' + str(epoch) + '.pkl', 'wb') as f:
+        pickle.dump(conf_matrix, f)
+    with open(outpath + '/conf_matrix_norm_test' + str(epoch) + '.pkl', 'wb') as f:
+        pickle.dump(conf_matrix_norm, f)
 
     _, true_id = torch.max(true_id, -1)
     _, pred_id = torch.max(pred_id, -1)
@@ -190,34 +195,34 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, target, out):
     cphi_true = true_p4[msk, 4].flatten().detach().numpy()
     cphi_pred = pred_p4[msk, 4].flatten().detach().numpy()
 
-    figure = plot_regression(ch_true, ch_pred, "charge", np.linspace(-2, 2, 100), target, fname = out+'charge_regression')
+    figure = plot_regression(ch_true, ch_pred, "charge", np.linspace(-2, 2, 100), target, fname = outpath+'charge_regression')
 
-    figure = plot_regression(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = out+'pt_regression')
+    figure = plot_regression(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'pt_regression')
 
-    figure = plot_distributions(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = out+'pt_distribution')
+    figure = plot_distributions(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'pt_distribution')
 
-    figure = plot_regression(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = out+'energy_regression')
+    figure = plot_regression(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = outpath+'energy_regression')
 
-    figure = plot_distributions(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = out+'energy_distribution')
+    figure = plot_distributions(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = outpath+'energy_distribution')
 
-    figure = plot_regression(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = out+'eta_regression')
+    figure = plot_regression(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = outpath+'eta_regression')
 
-    figure = plot_distributions(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = out+'eta_distribution')
+    figure = plot_distributions(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = outpath+'eta_distribution')
 
-    figure = plot_regression(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = out+'sphi_regression')
+    figure = plot_regression(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = outpath+'sphi_regression')
 
-    figure = plot_distributions(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = out+'sphi_distribution')
+    figure = plot_distributions(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = outpath+'sphi_distribution')
 
-    figure = plot_regression(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = out+'cphi_regression')
+    figure = plot_regression(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = outpath+'cphi_regression')
 
-    figure = plot_distributions(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = out+'cphi_distribution')
+    figure = plot_distributions(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = outpath+'cphi_distribution')
 
-    figure = plot_particles( out+'particleID1', true_id, true_p4, pred_id, pred_p4, pid=1)
+    figure = plot_particles( outpath+'particleID1', true_id, true_p4, pred_id, pred_p4, pid=1)
 
-    figure = plot_particles( out+'particleID2', true_id, true_p4, pred_id, pred_p4, pid=2)
+    figure = plot_particles( outpath+'particleID2', true_id, true_p4, pred_id, pred_p4, pid=2)
 
 
-def Evaluate(model, test_loader, path, target, device):
+def Evaluate(model, test_loader, path, target, device, epoch):
     pred_id_all = []
     pred_p4_all = []
     new_edges_all = []
@@ -249,4 +254,4 @@ def Evaluate(model, test_loader, path, target, device):
 
     print('Making plots for evaluation..')
 
-    make_plots(target_ids, target_p4, pred_id, pred_p4, target, out=path + '/')
+    make_plots(target_ids, target_p4, pred_id, pred_p4, target, epoch, outpath=path + '/')
