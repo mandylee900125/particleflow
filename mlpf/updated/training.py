@@ -164,7 +164,13 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         weights = compute_weights(torch.max(target_ids,-1)[1], device)
         l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights) # for classifying PID
         l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
-        loss = l1 + l2
+
+        if args.classification_only:
+            loss = l1
+        else:
+            loss = l1+l2
+
+        loss.requires_grad = True
 
         losses_1.append(l1.item())
         losses_2.append(l2.item())
@@ -315,11 +321,11 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 2, 'n_valid': 3, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    # args = objectview({'train': True, 'n_train': 4, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
+    # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
     # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True})
+    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True, 'classification_only': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Creating physics data objects..')
@@ -427,3 +433,150 @@ if __name__ == "__main__":
 # import pickle
 # with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
 #     a = pickle.load(f)
+
+
+
+
+#
+# # testing a forward pass
+# class objectview(object):
+#     def __init__(self, d):
+#         self.__dict__ = d
+#
+# args = objectview({'train': True, 'n_train': 2, 'n_valid': 3, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+# 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+# 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
+# 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
+# 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True})
+#
+# # define the dataset (assumes the data exists as .pt files in "processed")
+# full_dataset_ttbar = PFGraphDataset(args.dataset)
+# full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
+#
+# # constructs a loader from the data to iterate over batches
+# train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, batch_size=args.batch_size)
+# test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
+#
+# # element parameters
+# input_dim = 12
+#
+# #one-hot particle ID and momentum
+# output_dim_id = 6
+# output_dim_p4 = 6
+#
+# patience = args.patience
+#
+# model_classes = {"PFNet7": PFNet7}
+#
+# model_class = model_classes[args.model]
+# model_kwargs = {'input_dim': input_dim,
+#                 'hidden_dim': args.hidden_dim,
+#                 'encoding_dim': args.encoding_dim,
+#                 'output_dim_id': output_dim_id,
+#                 'output_dim_p4': output_dim_p4,
+#                 'dropout_rate': args.dropout,
+#                 'convlayer': args.convlayer,
+#                 'convlayer2': args.convlayer2,
+#                 'radius': args.radius,
+#                 'space_dim': args.space_dim,
+#                 'activation': args.activation,
+#                 'nearest': args.nearest,
+#                 'input_encoding': args.input_encoding}
+#
+# model = model_class(**model_kwargs)
+#
+# model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size)
+#
+# outpath = osp.join(args.outpath, model_fname)
+#
+# for batch in train_loader:
+#     X = batch
+#     target_ids = batch.ygen_id
+#     target_p4 = batch.ygen
+#
+#     # forwardprop
+#     cand_ids, cand_p4, new_edge_index = model(X)
+#     break
+#
+#
+#
+# batch
+#
+#
+#
+# weights = compute_weights(torch.max(target_ids,-1)[1], device)
+#
+# weights
+#
+#
+# batch
+#
+#
+# batch.ycand_id.argmax(axis=0)
+#
+#
+# len(batch.ycand_id)
+#
+# c0, c1, c2, c3, c4, c5 = 0, 0, 0, 0, 0, 0
+#
+# for i in range(len(batch.ygen_id)):
+#     if (batch.ygen_id[i][0]==1):
+#         c0=c0+1
+# for i in range(len(batch.ygen_id)):
+#     if (batch.ygen_id[i][1]==1):
+#         c1=c1+1
+# for i in range(len(batch.ygen_id)):
+#     if (batch.ygen_id[i][2]==1):
+#         c2=c2+1
+# for i in range(len(batch.ygen_id)):
+#     if (batch.ygen_id[i][3]==1):
+#         c3=c3+1
+# for i in range(len(batch.ygen_id)):
+#     if (batch.ygen_id[i][4]==1):
+#         c4=c4+1
+# for i in range(len(batch.ygen_id)):
+#     if (batch.ygen_id[i][5]==1):
+#         c5=c5+1
+#
+# c0
+# c1
+# c2
+# c3
+# c4
+# c5
+#
+#
+# c0+c1+c2+c3+c4+c5
+#
+#
+# c0/15704
+# c1/15704
+# c2/15704
+# c0/15704
+#
+# def compute_weights(target_ids, device):
+#     vs, cs = torch.unique(target_ids, return_counts=True)
+#     weights = torch.zeros(output_dim_id).to(device=device)
+#     for k, v in zip(vs, cs):
+#         weights[k] = 1.0/math.sqrt(float(v))
+#     return weights
+#
+#
+# compute_weights(torch.max(target_ids,-1)[1], device)
+#
+#
+# torch.max(target_ids,-1)[1]
+#
+# torch.unique(torch.max(target_ids,-1)[1], return_counts=True)
+#
+#
+#
+# torch.zeros(output_dim_id).to(device=device)
+# for k, v in zip(vs, cs):
+#     weights[k] = 1.0/math.sqrt(float(v))
+#
+#
+# weights
+#
+# 602
+# math.sqrt(900)

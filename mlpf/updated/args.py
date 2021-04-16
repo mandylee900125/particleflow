@@ -41,6 +41,7 @@ def parse_args():
     parser.add_argument("--load", action=BoolArg, default=False, help="Load the model (no training)")
     parser.add_argument("--load_model", type=str, help="Which model to load", default="PFNet7_cand_ntrain_2")
     parser.add_argument("--load_epoch", type=float, default=0, help="Which epoch of the model to load for evaluation")
+    parser.add_argument("--classification_only", action=BoolArg, default=False, help="Check to train for classification only (no regression)")
 
     # for evaluation
     parser.add_argument("--evaluate", action=BoolArg, default=True, help="Evaluate the model")
