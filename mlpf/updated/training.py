@@ -163,7 +163,9 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         # (2) computing losses
         weights = compute_weights(torch.max(target_ids,-1)[1], device)
         l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights) # for classifying PID
+        l1.requires_grad = True
         l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
+        l2.requires_grad = True
 
         if args.classification_only:
             loss = l1
