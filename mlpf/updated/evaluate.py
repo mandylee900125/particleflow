@@ -230,12 +230,13 @@ def Evaluate(model, test_loader, path, target, device, epoch):
     target_p4_all = []
 
     for batch in test_loader:
-        pred_id, pred_p4, new_edges = model(batch.to(device))
+        if multi_gpu:
+            pred_id, pred_p4 = model(batch)
+        else:
+            pred_id, pred_p4 = model(batch.to(device))
 
         pred_id_all.append(pred_id.detach().cpu())
         pred_p4_all.append(pred_p4.detach().cpu())
-        new_edges_all.append(new_edges.detach().cpu())
-
 
         target_ids_all.append(batch.ygen_id.detach().cpu())
         target_p4_all.append(batch.ygen.detach().cpu())

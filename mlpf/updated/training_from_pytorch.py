@@ -139,14 +139,24 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         # for better reading of the code
         if args.target == "cand":
-            X = batch.to(device)
-            target_ids = batch.ycand_id.to(device)
-            target_p4 = batch.ycand.to(device)
+            if multi_gpu:
+                X = batch
+                target_ids = batch.ygen_id
+                target_p4 = batch.ygen
+            else:
+                X = batch.to(device)
+                target_ids = batch.ycand_id.to(device)
+                target_p4 = batch.ycand.to(device)
 
         if args.target == "gen":
-            X = batch.to(device)
-            target_ids = batch.ygen_id.to(device)
-            target_p4 = batch.ygen.to(device)
+            if multi_gpu:
+                X = batch
+                target_ids = batch.ygen_id
+                target_p4 = batch.ygen
+            else:
+                X = batch.to(device)
+                target_ids = batch.ygen_id.to(device)
+                target_p4 = batch.ygen.to(device)
 
         # forwardprop
         cand_ids, cand_p4 = model(X)
@@ -313,18 +323,18 @@ def train_loop():
 
 if __name__ == "__main__":
 
-    args = parse_args()
+    #args = parse_args()
 
-    # # the next part initializes some args values (to run the script not from terminal)
-    # class objectview(object):
-    #     def __init__(self, d):
-    #         self.__dict__ = d
-    #
-    # args = objectview({'train': True, 'n_train': 4, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-    # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
-    # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True, 'classification_only': True})
+    # the next part initializes some args values (to run the script not from terminal)
+    class objectview(object):
+        def __init__(self, d):
+            self.__dict__ = d
+
+    args = objectview({'train': True, 'n_train': 4, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
+    'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
+    'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Creating physics data objects..')
@@ -368,8 +378,9 @@ if __name__ == "__main__":
         model = model_class(**model_kwargs)
 
         if multi_gpu:
-            model = torch_geometric.nn.DataParallel(model)
             print("Parallelizing the training..")
+            model = torch_geometric.nn.DataParallel(model)
+            #model = torch.nn.parallel.DistributedDataParallel(model)    ### TODO: make it compatible with DDP
 
         model.to(device)
 

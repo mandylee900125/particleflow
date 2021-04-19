@@ -10,7 +10,7 @@ import pickle, math, time, numba, tqdm
 import torch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
-multi_gpu=0
+
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
@@ -162,8 +162,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             target_p4 = batch.ycand.to(device)
 
         if args.target == "gen":
-            #X = batch
-            X = batch.to(device)
+            X = batch
             # target_ids = batch.ygen_id
             # target_p4 = batch.ygen
 
