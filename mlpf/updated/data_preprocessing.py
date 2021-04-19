@@ -80,5 +80,6 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #
 # batch
 #
+# # a "Batch" of size 2 is given by: Batch(batch=(2*5k), x=(2*5k,12), ...)
 # # batch is a column vector which maps each node to its respective graph in the batch:
 # batch.batch
