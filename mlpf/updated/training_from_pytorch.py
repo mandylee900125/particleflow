@@ -147,8 +147,9 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         else:
             X = batch.to(device)
 
+        print(batch)
         cand_ids, cand_p4, target_ids, target_p4 = model(X)
-
+        LOL
         # BACKPROP
         # (1) Predictions where both the predicted and true class label was nonzero
         # In these cases, the true candidate existed and a candidate was predicted
