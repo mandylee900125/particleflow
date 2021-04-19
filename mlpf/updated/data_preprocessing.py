@@ -4,7 +4,6 @@ from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
-multi_gpu=0
 
 #define the global base device
 if use_gpu:
