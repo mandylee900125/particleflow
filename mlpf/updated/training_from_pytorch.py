@@ -7,15 +7,20 @@ import pandas as pd
 import pickle, math, time, numba, tqdm
 
 #Check if the GPU configuration has been provided
-try:
-    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
-        import setGPU
-except Exception as e:
-    print("Could not import setGPU, running CPU-only")
-
 import torch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
+
+try:
+    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
+        import setGPU
+        if multi_gpu:
+            print('Will use multi_gpu..')
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+        else:
+            print('Will use single_gpu..')
+except Exception as e:
+    print("Could not import setGPU, running CPU-only")
 
 #define the global base device
 if use_gpu:
