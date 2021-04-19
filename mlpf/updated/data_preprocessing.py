@@ -55,7 +55,6 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 
     return test_loader
 
-
 #----------------------------------------------------------------------------------------
 # from graph_data_delphes import PFGraphDataset, one_hot_embedding
 # # the next part initializes some args values (to run the script not from terminal)
@@ -80,6 +79,11 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #
 # batch
 #
-# # a "Batch" of size 2 is given by: Batch(batch=(2*5k), x=(2*5k,12), ...)
-# # batch is a column vector which maps each node to its respective graph in the batch:
+# # if multigpu: a "Batch" of size 3 is given by: [Data(x=[5k, 12], ycand=[5k, 6], ...) , Data(x=[5k, 12], ...), Data(x=[5k, 12], ...)]
+# # then when we pass it to the model, DP takes care of converting it into bacthes like this (for 2 gpus):
+# # Batch(batch=[2*5k], x=[2*5k, 12], ...)
+# # Batch(batch=[5k], x=[5k, 12], ...)
+
+# # if not multigpu: a "Batch" of size 2 is directly given by: Batch(batch=(2*5k), x=(2*5k,12), ...)
+# # Note: batch is a column vector which maps each node to its respective graph in the batch:
 # batch.batch

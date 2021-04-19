@@ -368,7 +368,7 @@ if __name__ == "__main__":
 
         if multi_gpu:
             print("Parallelizing the training..")
-            model = torch_geometric.nn.DataParallel(model)
+            #model = torch_geometric.nn.DataParallel(model)
             #model = torch.nn.parallel.DistributedDataParallel(model)    ### TODO: make it compatible with DDP
 
         model.to(device)
