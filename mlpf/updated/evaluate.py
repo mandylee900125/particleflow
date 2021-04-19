@@ -231,10 +231,10 @@ def Evaluate(model, test_loader, path, target, device, epoch):
     for batch in test_loader:
         if multi_gpu:
             X = batch
-            pred_id, pred_p4, target_ids, target_p4 = model(X, target=target)
         else:
             X = batch.to(device)
-            pred_id, pred_p4, target_ids, target_p4 = model(X, target=target)
+
+        pred_id, pred_p4, target_ids, target_p4 = model(X)
 
         pred_id_all.append(pred_id.detach().cpu())
         pred_p4_all.append(pred_p4.detach().cpu())

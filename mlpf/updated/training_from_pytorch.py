@@ -151,7 +151,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             # target_ids = batch.ycand_id.to(device)
             # target_p4 = batch.ycand.to(device)
 
-        cand_ids, cand_p4, target_ids, target_p4 = model(X, target=args.target)
+        cand_ids, cand_p4, target_ids, target_p4 = model(X)
 
         # if args.target == "gen":
         #     if multi_gpu:
@@ -370,7 +370,8 @@ if __name__ == "__main__":
                     'space_dim': args.space_dim,
                     'activation': args.activation,
                     'nearest': args.nearest,
-                    'input_encoding': args.input_encoding}
+                    'input_encoding': args.input_encoding,
+                    'target': args.target}
 
     if args.train:
         #instantiate the model
