@@ -225,25 +225,25 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
 def Evaluate(model, test_loader, path, target, device, epoch):
     pred_id_all = []
     pred_p4_all = []
-    new_edges_all = []
     target_ids_all = []
     target_p4_all = []
 
     for batch in test_loader:
         if multi_gpu:
-            pred_id, pred_p4 = model(batch)
+            X = batch
+            pred_id, pred_p4, target_ids, target_p4 = model(X, target=target)
         else:
-            pred_id, pred_p4 = model(batch.to(device))
+            X = batch.to(device)
+            pred_id, pred_p4, target_ids, target_p4 = model(X, target=target)
 
         pred_id_all.append(pred_id.detach().cpu())
         pred_p4_all.append(pred_p4.detach().cpu())
 
-        target_ids_all.append(batch.ygen_id.detach().cpu())
-        target_p4_all.append(batch.ygen.detach().cpu())
+        target_ids_all.append(target_ids.detach().cpu())
+        target_p4_all.append(target_p4.detach().cpu())
 
     pred_id = pred_id_all[0]
     pred_p4 = pred_p4_all[0]
-    new_edges = new_edges_all[0]
     target_ids = target_ids_all[0]
     target_p4 = target_p4_all[0]
 
