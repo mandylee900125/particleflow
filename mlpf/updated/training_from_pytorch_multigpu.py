@@ -10,7 +10,7 @@ import pickle, math, time, numba, tqdm
 import torch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
-
+multi_gpu=0
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
@@ -27,7 +27,7 @@ if use_gpu:
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
-multi_gpu=0
+
 import torch_geometric
 import torch.nn as nn
 import torch.nn.functional as F
