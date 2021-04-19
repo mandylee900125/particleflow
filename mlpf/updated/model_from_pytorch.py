@@ -26,7 +26,7 @@ class PFNet7(nn.Module):
         output_dim_p4=6,
         convlayer="gravnet-radius",
         convlayer2="none",
-        space_dim=2, nearest=3, dropout_rate=0.0, activation="leaky_relu", return_edges=False, radius=0.1, input_encoding=0, target='gen'):
+        space_dim=2, nearest=3, dropout_rate=0.0, activation="leaky_relu", return_edges=False, radius=0.1, input_encoding=0, target="gen"):
 
         super(PFNet7, self).__init__()
 
@@ -105,16 +105,16 @@ class PFNet7(nn.Module):
         # (2) pass them both to the NN
         cand_p4 = self.nn3(self.dropout1(nn3_input))
 
-        if target=='cand':
+        if self.target=='cand':
             return cand_ids, cand_p4, data.ycand_id, data.ycand
 
-        elif target=='gen':
+        elif self.target=='gen':
             return cand_ids, cand_p4, data.ygen_id, data.ygen
 
         else:
             print('Target tupe unknown..')
             return 0
-            
+
 # -------------------------------------------------------------------------------------
 # # test a forward pass
 # from graph_data_delphes import PFGraphDataset
