@@ -35,6 +35,7 @@ class PFNet7(nn.Module):
         self.return_edges = return_edges
         self.convlayer = convlayer
         self.input_encoding = input_encoding
+        self.target = target
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
@@ -112,7 +113,7 @@ class PFNet7(nn.Module):
             return cand_ids, cand_p4, data.ygen_id, data.ygen
 
         else:
-            print('Target tupe unknown..')
+            print('Target type unknown..')
             return 0
 
 # -------------------------------------------------------------------------------------
