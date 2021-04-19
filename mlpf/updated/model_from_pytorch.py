@@ -87,7 +87,7 @@ class PFNet7(nn.Module):
 
         #encode the inputs (x is of shape [~5000*batch_size, input_dim])
         x = data.x
-
+        print(data.ygen_id)
         #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
         # new_edge_index is of shape [2, big#]
         # x & x1 are of shape [~5000*batch_size, encoding_dim]

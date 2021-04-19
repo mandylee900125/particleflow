@@ -167,7 +167,6 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         cand_ids, cand_p4 = model(X)
         print('X is:', X)
         print(len(cand_ids))
-        print(X.x)
         
         # BACKPROP
         # (1) Predictions where both the predicted and true class label was nonzero
