@@ -27,7 +27,7 @@ if use_gpu:
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
-
+multi_gpu=0
 import torch_geometric
 import torch.nn as nn
 import torch.nn.functional as F
