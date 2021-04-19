@@ -11,6 +11,9 @@ if use_gpu:
 else:
     device = torch.device('cpu')
 
+# if not multigpu we have to pass batches that are stacked as "batch.type() = Batch" (not list) so that pytorch can access attributes like ygen_id through batch.ygen_id
+# if multigpu we have to pass list of "Data" elements.. then behind the scene, pytorch DP will convert the list to appropriate Batches to fit on the gpus available so that batch.ygen_id works out of the box
+
 # define a function that casts the ttbar dataset into a dataloader for efficient NN training
 def data_to_loader_ttbar(full_dataset, n_train, n_valid, batch_size):
 
@@ -80,7 +83,7 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 # batch
 #
 # # if multigpu: a "Batch" of size 3 is given by: [Data(x=[5k, 12], ycand=[5k, 6], ...) , Data(x=[5k, 12], ...), Data(x=[5k, 12], ...)]
-# # then when we pass it to the model, DP takes care of converting it into bacthes like this (for 2 gpus):
+# # then when we pass it to the model, DP takes care of converting it into batches like this (for 2 gpus):
 # # Batch(batch=[2*5k], x=[2*5k, 12], ...)
 # # Batch(batch=[5k], x=[5k, 12], ...)
 

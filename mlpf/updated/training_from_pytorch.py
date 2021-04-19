@@ -148,7 +148,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
             X = batch.to(device)
 
         cand_ids, cand_p4, target_ids, target_p4 = model(X)
-        LOL
+
         # BACKPROP
         # (1) Predictions where both the predicted and true class label was nonzero
         # In these cases, the true candidate existed and a candidate was predicted
@@ -368,7 +368,7 @@ if __name__ == "__main__":
 
         if multi_gpu:
             print("Parallelizing the training..")
-            #model = torch_geometric.nn.DataParallel(model)
+            model = torch_geometric.nn.DataParallel(model)
             #model = torch.nn.parallel.DistributedDataParallel(model)    ### TODO: make it compatible with DDP
 
         model.to(device)
