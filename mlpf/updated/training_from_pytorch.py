@@ -142,7 +142,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     for i, batch in enumerate(loader):
         t0 = time.time()
 
-        if multi_gpu:
+        if 0:
             X = batch
             # target_ids = batch.ygen_id
             # target_p4 = batch.ygen
@@ -330,7 +330,7 @@ if __name__ == "__main__":
         def __init__(self, d):
             self.__dict__ = d
 
-    args = objectview({'train': True, 'n_train': 4, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+    args = objectview({'train': True, 'n_train': 2, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
     'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
     'outpath': '../../../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
     'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
