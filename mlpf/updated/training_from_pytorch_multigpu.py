@@ -377,6 +377,7 @@ if __name__ == "__main__":
 
         if multi_gpu:
             #model = torch_geometric.nn.DataParallel(model)
+            torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
             model = torch.nn.parallel.DistributedDataParallel(model)
 
             print("Parallelizing the training..")
