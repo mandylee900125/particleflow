@@ -47,7 +47,7 @@ class PFNet7(nn.Module):
         #     self.conv1 = GravNetConv(input_dim, encoding_dim, space_dim, hidden_dim, nearest, neighbor_algo="radius", radius=radius)
         # else:
         #     raise Exception("Unknown convolution layer: {}".format(convlayer))
-        self.conv1 = GravNetConv(input_dim, encoding_dim, space_dim, propagate_dimensions=input_dim, k=10)
+        self.conv1 = GravNetConv(input_dim, encoding_dim, space_dim, propagate_dimensions=input_dim, k=16)
 
         # (2) another GNN layer if you want
         self.convlayer2 = convlayer2
