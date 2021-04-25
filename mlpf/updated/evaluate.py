@@ -39,7 +39,7 @@ import math
 import sys
 import os.path as osp
 
-from plot_utils import plot_confusion_matrix, cms_label, particle_label, sample_label
+from plot_utils import cms_label, particle_label, sample_label
 from plot_utils import plot_E_reso, plot_eta_reso, plot_phi_reso, bins
 import torch
 import seaborn as sns

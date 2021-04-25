@@ -57,7 +57,11 @@ from args import parse_args
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
-from evaluate import make_plots, Evaluate, plot_confusion_matrix
+from evaluate import make_plots, Evaluate
+
+sys.path.insert(1, '../../plotting/')
+sys.path.insert(1, '../../mlpf/plotting/')
+from plot_utils import plot_confusion_matrix
 
 from model import PFNet7
 
@@ -82,8 +86,8 @@ def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_si
         task)
     return model_fname
 
-def compute_weights(target_ids, device):
-    vs, cs = torch.unique(target_ids, return_counts=True)
+def compute_weights(target_ids_one_hot, device):
+    vs, cs = torch.unique(target_ids_one_hot, return_counts=True)
     weights = torch.zeros(output_dim_id).to(device=device)
     for k, v in zip(vs, cs):
         weights[k] = 1.0/math.sqrt(float(v))
@@ -105,13 +109,13 @@ def make_plot_from_list(l, label, xlabel, ylabel, outpath, save_as):
         pickle.dump(l, f)
 
 @torch.no_grad()
-def test(model, loader, epoch, l1m, l2m, l3m, target_type, device):
+def test(model, loader, epoch, alpha, target_type, device):
     with torch.no_grad():
-        ret = train(model, loader, epoch, None, l1m, l2m, l3m, target_type, device)
+        ret = train(model, loader, epoch, None, alpha, target_type, device)
     return ret
 
 
-def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
+def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
     is_train = not (optimizer is None)
 
@@ -120,17 +124,14 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     else:
         model.eval()
 
-    #loss values for each batch: classification, regression
+    #loss values for each batch: classification, regression, total
     losses_1, losses_2, losses_tot = [], [], []
 
     #accuracy values for each batch (monitor classification performance)
     accuracies_batch, accuracies_batch_msk = [], []
 
-    #epoch confusion matrix
+    #setup confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
-
-    #keep track of how many data points were processed
-    num_samples = 0
 
     for i, batch in enumerate(loader):
         t0 = time.time()
@@ -140,25 +141,21 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         else:
             X = batch.to(device)
 
-        cand_ids, cand_p4, target_ids, target_p4 = model(X)
+        # Forwardprop
+        cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4 = model(X)
 
-        # BACKPROP
-        # (1) Predictions where both the predicted and true class label was nonzero
-        # In these cases, the true candidate existed and a candidate was predicted
-        # msk is a list of booleans of shape [~5000*batch_size] where each boolean correspond to whether a candidate was predicted
-        _, indices = torch.max(cand_ids, -1)     # picks the maximum PID location and stores the index (opposite of one_hot_embedding)
-        _, target_ids_msk = torch.max(target_ids, -1)
-        msk = ((indices != 0) & (target_ids_msk != 0))
-        msk2 = ((indices != 0) & (indices == target_ids_msk))
+        _, cand_ids = torch.max(cand_ids_one_hot, -1)
+        _, target_ids = torch.max(target_ids_one_hot, -1)
 
-        # (2) computing losses
-        weights = compute_weights(torch.max(target_ids,-1)[1], device)
-        #l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights) # for classifying PID
-        loss = torch.nn.CrossEntropyLoss(weight=weights)
-        l1 = loss(target_ids, indices)
+        # masking
+        msk = ((cand_ids != 0) & (target_ids != 0))
+        msk2 = ((cand_ids != 0) & (cand_ids == target_ids))
+
+        # computing loss
+        weights = compute_weights(torch.max(target_ids_one_hot,-1)[1], device)
+        l1 = torch.nn.functional.cross_entropy(target_ids_one_hot, cand_ids, weight=weights) # for classifying PID
         l1.requires_grad = True
-
-        l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
+        l2 = alpha * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
 
         if args.classification_only:
             loss = l1
@@ -170,21 +167,20 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
         losses_tot.append(loss.item())
 
         if is_train:
+            # BACKPROP
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
         t1 = time.time()
 
-        num_samples += len(cand_ids)
+        accuracies_batch.append(accuracy_score(target_ids.detach().cpu().numpy(), cand_ids.detach().cpu().numpy()))
+        accuracies_batch_msk.append(accuracy_score(target_ids[msk].detach().cpu().numpy(), cand_ids[msk].detach().cpu().numpy()))
 
-        accuracies_batch.append(accuracy_score(target_ids_msk.detach().cpu().numpy(), indices.detach().cpu().numpy()))
-        accuracies_batch_msk.append(accuracy_score(target_ids_msk[msk].detach().cpu().numpy(), indices[msk].detach().cpu().numpy()))
+        conf_matrix += sklearn.metrics.confusion_matrix(target_ids.detach().cpu().numpy(),
+                                        np.argmax(cand_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
 
         print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
-
-        conf_matrix += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
-                                        np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
@@ -195,7 +191,7 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
     conf_matrix_norm = conf_matrix / conf_matrix.sum(axis=1)[:, np.newaxis]
 
-    return num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm
+    return losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm
 
 
 def train_loop():
@@ -220,7 +216,7 @@ def train_loop():
 
         # training epoch
         model.train()
-        num_samples, losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm = train(model, train_loader, epoch, optimizer, args.l1, args.l2, args.l3, args.target, device)
+        losses_tot, losses_1, losses_2, acc, acc_msk, conf_matrix, conf_matrix_norm = train(model, train_loader, epoch, optimizer, args.alpha, args.target, device)
 
         losses_tot_train.append(losses_tot)
         losses_1_train.append(losses_1)
@@ -231,7 +227,7 @@ def train_loop():
 
         # validation step
         model.eval()
-        num_samples_val, losses_tot_v, losses_1_v, losses_2_v, acc_v, acc_msk_v, conf_matrix_v, conf_matrix_norm_v = test(model, valid_loader, epoch, args.l1, args.l2, args.l3, args.target, device)
+        losses_tot_v, losses_1_v, losses_2_v, acc_v, acc_msk_v, conf_matrix_v, conf_matrix_norm_v = test(model, valid_loader, epoch, args.alpha, args.target, device)
 
         losses_tot_valid.append(losses_tot_v)
         losses_1_valid.append(losses_1_v)
@@ -260,8 +256,8 @@ def train_loop():
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
 
-        plot_confusion_matrix(conf_matrix_norm, fname = outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch), epoch=epoch)
-        plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
+        plot_confusion_matrix(conf_matrix_norm, ["none", "ch.had", "n.had", "g", "el", "mu"], fname = outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch), epoch=epoch)
+        plot_confusion_matrix(conf_matrix_norm_v, ["none", "ch.had", "n.had", "g", "el", "mu"], fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
 
         with open(outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
             pickle.dump(conf_matrix_norm, f)
@@ -296,15 +292,15 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 10, 'patience': 100, 'hidden_dim':32, 'input_encoding': 12, 'encoding_dim': 256,
+    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'input_encoding': 12, 'encoding_dim': 256,
     # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.0,
+    # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0.0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
     # 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001',
     # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
-    print('Creating physics data objects..')
+    print('Processing the data..')
     full_dataset_ttbar = PFGraphDataset(args.dataset)
     full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
 
@@ -409,63 +405,5 @@ if __name__ == "__main__":
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
 # import pickle
-# with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+# with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_normed_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
 #     a = pickle.load(f)
-
-# # testing a forward pass
-# class objectview(object):
-#     def __init__(self, d):
-#         self.__dict__ = d
-#
-# args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 10, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-# 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-# 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 0.0000000001, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
-# 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-# 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True})
-#
-# # define the dataset (assumes the data exists as .pt files in "processed")
-# full_dataset_ttbar = PFGraphDataset(args.dataset)
-# full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
-#
-# # constructs a loader from the data to iterate over batches
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, batch_size=args.batch_size)
-# test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
-#
-# # element parameters
-# input_dim = 12
-#
-# #one-hot particle ID and momentum
-# output_dim_id = 6
-# output_dim_p4 = 6
-#
-# patience = args.patience
-#
-# model_classes = {"PFNet7": PFNet7}
-#
-# model_class = model_classes[args.model]
-# model_kwargs = {'input_dim': input_dim,
-#                 'hidden_dim': args.hidden_dim,
-#                 'encoding_dim': args.encoding_dim,
-#                 'output_dim_id': output_dim_id,
-#                 'output_dim_p4': output_dim_p4,
-#                 'dropout_rate': args.dropout,
-#                 'convlayer': args.convlayer,
-#                 'convlayer2': args.convlayer2,
-#                 'radius': args.radius,
-#                 'space_dim': args.space_dim,
-#                 'activation': args.activation,
-#                 'nearest': args.nearest,
-#                 'input_encoding': args.input_encoding}
-#
-# model = model_class(**model_kwargs)
-#
-# model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size)
-#
-# for batch in valid_loader:
-#     X = batch
-#     target_ids = batch.ygen_id
-#     target_p4 = batch.ygen
-#
-#     # forwardprop
-#     cand_ids, cand_p4, target_ids, target_p4 = model(X)
-#     break
