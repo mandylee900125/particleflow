@@ -65,8 +65,8 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #     def __init__(self, d):
 #         self.__dict__ = d
 #
-# args = objectview({'train': True, 'n_train': 3, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-# 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+# args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+# 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
 # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
 # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
 # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
@@ -81,12 +81,14 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
 #     break
 #
 # batch
+# len(train_loader)
+#
 #
 # # if multigpu: a "Batch" of size 3 is given by: [Data(x=[5k, 12], ycand=[5k, 6], ...) , Data(x=[5k, 12], ...), Data(x=[5k, 12], ...)]
 # # then when we pass it to the model, DP takes care of converting it into batches like this (for 2 gpus):
 # # Batch(batch=[2*5k], x=[2*5k, 12], ...)
 # # Batch(batch=[5k], x=[5k, 12], ...)
-
+#
 # # if not multigpu: a "Batch" of size 2 is directly given by: Batch(batch=(2*5k), x=(2*5k,12), ...)
 # # Note: batch is a column vector which maps each node to its respective graph in the batch:
 # batch.batch

@@ -15,45 +15,46 @@ from torch_geometric.nn.inits import reset
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch.utils.data import random_split
 
+#from torch_geometric.nn import GravNetConv         # if you want to get it from source code (won't be able to retrieve the adjacency matrix)
 from gravnet import GravNetConv
+from torch_geometric.nn import GraphConv
 
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=32, encoding_dim=256,
+        input_dim=12, hidden_dim=125, input_encoding=12, encoding_dim=32,
         output_dim_id=6,
         output_dim_p4=6,
-        convlayer="gravnet-radius",
-        convlayer2="none",
-        space_dim=2, nearest=3, dropout_rate=0.0, activation="leaky_relu", return_edges=False, radius=0.1, input_encoding=0):
+        dropout_rate=0.0,
+        space_dim=4, propagate_dimensions=22, nearest=16,
+        target="gen"):
 
         super(PFNet7, self).__init__()
 
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.return_edges = return_edges
-        self.convlayer = convlayer
-        self.input_encoding = input_encoding
+        self.target = target
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
 
-        # (1) GNN layer
-        if convlayer == "gravnet-knn":
-            self.conv1 = GravNetConv(input_dim, encoding_dim, space_dim, hidden_dim, nearest, neighbor_algo="knn")
-        elif convlayer == "gravnet-radius":
-            self.conv1 = GravNetConv(input_dim, encoding_dim, space_dim, hidden_dim, nearest, neighbor_algo="radius", radius=radius)
-        else:
-            raise Exception("Unknown convolution layer: {}".format(convlayer))
+        # dropout layer if needed anywhere
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
 
-        # (2) another GNN layer if you want
-        self.convlayer2 = convlayer2
-        if convlayer2 == "none":
-            self.conv2_1 = None
-            self.conv2_2 = None
+        # (1) DNN
+        self.nn1 = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            self.act(),
+            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(),
+            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            nn.Linear(hidden_dim, input_encoding),
+        )
 
-        # (3) dropout layer if you want
-        self.dropout1 = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        # (2) CNN: Gravnet layer
+        self.conv1 = GravNetConv(input_encoding, encoding_dim, space_dim, propagate_dimensions, nearest)
+
+        # (3) CNN: GraphConv
+        self.conv2 = GraphConv(encoding_dim, encoding_dim)
 
         # (4) DNN layer: classifying PID
         self.nn2 = nn.Sequential(
@@ -63,8 +64,6 @@ class PFNet7(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             self.act(),
             nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-            nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
             nn.Linear(hidden_dim, output_dim_id),
         )
 
@@ -76,56 +75,58 @@ class PFNet7(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             self.act(),
             nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-            nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
             nn.Linear(hidden_dim, output_dim_p4),
         )
 
     def forward(self, data):
 
-        #encode the inputs (x is of shape [~5000*batch_size, input_dim])
         x = data.x
 
-        #Run a clustering of the inputs that returns the new_edge_index.. this is the KNN step..
-        # new_edge_index is of shape [2, big#]
-        # x & x1 are of shape [~5000*batch_size, encoding_dim]
-        new_edge_index, x = self.conv1(x)
-        x1 = self.act_f(x)                 # act by nonlinearity
+        # Encoder/Decoder step
+        x = self.nn1(x)
 
-        #Decode convolved graph nodes to PID (after a dropout)
-        # cand_ids is of shape [~5000*batch_size, 6]
-        cand_ids = self.nn2(self.dropout1(x1))
+        # Gravnet step
+        x, edge_index, edge_weight = self.conv1(x)
+        x = self.act_f(x)                 # act by nonlinearity
 
-        #Decode convolved graph nodes to p4
-        # (1) add the predicted PID along as it may help (why we concatenate)
-        nn3_input = torch.cat([x1, cand_ids], axis=-1)
+        # GraphConv step
+        x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
+        x = self.act_f(x)                 # act by nonlinearity
 
-        # (2) pass them both to the NN
-        cand_p4 = self.nn3(self.dropout1(nn3_input))
+        # DNN to predict PID (after a dropout)
+        cand_ids = self.nn2(self.dropout(x))
 
-        return cand_ids, cand_p4, new_edge_index
+        # DNN to predict p4 (after a dropout)
+        nn3_input = torch.cat([x, cand_ids], axis=-1)
+        cand_p4 = self.nn3(self.dropout(nn3_input))
 
+        if self.target=='cand':
+            return cand_ids, cand_p4, data.ycand_id, data.ycand
+
+        elif self.target=='gen':
+            return cand_ids, cand_p4, data.ygen_id, data.ygen
+
+        else:
+            print('Target type unknown..')
+            return 0
 
 # -------------------------------------------------------------------------------------
-# # test a forward pass
+# # uncomment to test a forward pass
 # from graph_data_delphes import PFGraphDataset
 # from data_preprocessing import data_to_loader_ttbar
+# from data_preprocessing import data_to_loader_qcd
 #
 # full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
 #
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=1 )
+# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)
 #
-# print(next(iter(train_loader)))
+# print('Input to the network:', next(iter(train_loader)))
 #
 # model = PFNet7()
 #
 # for batch in train_loader:
-#     cand_id_onehot, cand_momentum, new_edge_index = model(batch)
+#     cand_ids, cand_p4, target_ids, target_p4 = model(batch)
+#     cand_ids
+#     print('Predicted PID:', cand_ids)
+#     print('Predicted p4:', cand_p4)
 #     break
-#
-#
-# batch
-# print(cand_id_onehot.shape)
-# print(cand_momentum.shape)
-# print(new_edge_index.shape)
-# print(new_edge_index)

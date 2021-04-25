@@ -7,15 +7,20 @@ import pandas as pd
 import pickle, math, time, numba, tqdm
 
 #Check if the GPU configuration has been provided
-try:
-    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
-        import setGPU
-except Exception as e:
-    print("Could not import setGPU, running CPU-only")
-
 import torch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
+
+try:
+    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
+        import setGPU
+        if multi_gpu:
+            print('Will use multi_gpu..')
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+        else:
+            print('Will use single_gpu..')
+except Exception as e:
+    print("Could not import setGPU, running CPU-only")
 
 #define the global base device
 if use_gpu:
@@ -33,7 +38,7 @@ from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 from torch_scatter import scatter_mean
 from torch_geometric.nn.inits import reset
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
-from gravnet import GravNetConv
+from torch_geometric.nn import GravNetConv
 from torch_geometric.data import Data, DataListLoader, Batch
 from torch.utils.data import random_split
 
@@ -49,37 +54,33 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 import args
 from args import parse_args
 
-from model import PFNet7
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
 from evaluate import make_plots, Evaluate, plot_confusion_matrix
 
+from model import PFNet7
+
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
     model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
     model_user = os.environ['USER']
 
-    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}'.format(
+    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}'.format(
         model_name,
         target_type,
         n_train,
         n_epochs,
         batch_size,
-        lr)
+        lr,
+        task)
     return model_fname
-
-def mse_loss(input, target):
-    return torch.sum((input - target) ** 2)
-
-def weighted_mse_loss(input, target, weight):
-    return torch.sum(weight * (input - target).sum(axis=1) ** 2)
 
 def compute_weights(target_ids, device):
     vs, cs = torch.unique(target_ids, return_counts=True)
@@ -125,9 +126,6 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     #accuracy values for each batch (monitor classification performance)
     accuracies_batch, accuracies_batch_msk = [], []
 
-    #correlation values for each batch (monitor regression performance)
-    corrs_batch = np.zeros(len(loader))
-
     #epoch confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
 
@@ -137,19 +135,12 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
     for i, batch in enumerate(loader):
         t0 = time.time()
 
-        # for better reading of the code
-        if args.target == "cand":
+        if multi_gpu:
+            X = batch
+        else:
             X = batch.to(device)
-            target_ids = batch.ycand_id.to(device)
-            target_p4 = batch.ycand.to(device)
 
-        if args.target == "gen":
-            X = batch.to(device)
-            target_ids = batch.ygen_id.to(device)
-            target_p4 = batch.ygen.to(device)
-
-        # forwardprop
-        cand_ids, cand_p4, new_edge_index = model(X)
+        cand_ids, cand_p4, target_ids, target_p4 = model(X)
 
         # BACKPROP
         # (1) Predictions where both the predicted and true class label was nonzero
@@ -162,8 +153,11 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         # (2) computing losses
         weights = compute_weights(torch.max(target_ids,-1)[1], device)
-        l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights) # for classifying PID
+        #l1 = l1m * torch.nn.functional.cross_entropy(target_ids, indices, weight=weights) # for classifying PID
+        loss = torch.nn.CrossEntropyLoss(weight=weights)
+        l1 = loss(target_ids, indices)
         l1.requires_grad = True
+
         l2 = l2m * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
 
         if args.classification_only:
@@ -189,19 +183,8 @@ def train(model, loader, epoch, optimizer, l1m, l2m, l3m, target_type, device):
 
         print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
 
-        #Compute correlation of predicted and true pt values for monitoring
-        corr_pt = 0.0
-        if msk.sum()>0:
-            corr_pt = np.corrcoef(
-                cand_p4[msk, 0].detach().cpu().numpy(),
-                target_p4[msk, 0].detach().cpu().numpy())[0,1]
-
-        corrs_batch[i] = corr_pt
-
         conf_matrix += sklearn.metrics.confusion_matrix(target_ids_msk.detach().cpu().numpy(),
                                         np.argmax(cand_ids.detach().cpu().numpy(),axis=1), labels=range(6))
-
-    corr = np.mean(corrs_batch)
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
@@ -277,19 +260,12 @@ def train_loop():
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
 
-        plot_confusion_matrix(conf_matrix, fname= outpath + '/confusion_matrix_plots/cmT_epoch_' + str(epoch), epoch=epoch)
         plot_confusion_matrix(conf_matrix_norm, fname = outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch), epoch=epoch)
+        plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
 
-        with open(outpath + '/confusion_matrix_plots/cmT_epoch_' + str(epoch) + '.pkl', 'wb') as f:
-            pickle.dump(conf_matrix, f)
         with open(outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
             pickle.dump(conf_matrix_norm, f)
 
-        plot_confusion_matrix(conf_matrix_v, fname= outpath + '/confusion_matrix_plots/cmV_epoch_' + str(epoch), epoch=epoch)
-        plot_confusion_matrix(conf_matrix_norm_v, fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
-
-        with open(outpath + '/confusion_matrix_plots/cmV_epoch_' + str(epoch) + '.pkl', 'wb') as f:
-            pickle.dump(conf_matrix_v, f)
         with open(outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
             pickle.dump(conf_matrix_norm_v, f)
 
@@ -320,11 +296,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 4, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-    # 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
-    # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-    # 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True, 'classification_only': True})
+    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 10, 'patience': 100, 'hidden_dim':32, 'input_encoding': 12, 'encoding_dim': 256,
+    # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.0,
+    # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
+    # 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001',
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Creating physics data objects..')
@@ -350,17 +327,15 @@ if __name__ == "__main__":
     model_class = model_classes[args.model]
     model_kwargs = {'input_dim': input_dim,
                     'hidden_dim': args.hidden_dim,
+                    'input_encoding': args.input_encoding,
                     'encoding_dim': args.encoding_dim,
                     'output_dim_id': output_dim_id,
                     'output_dim_p4': output_dim_p4,
                     'dropout_rate': args.dropout,
-                    'convlayer': args.convlayer,
-                    'convlayer2': args.convlayer2,
-                    'radius': args.radius,
                     'space_dim': args.space_dim,
-                    'activation': args.activation,
+                    'propagate_dimensions': args.propagate_dimensions,
                     'nearest': args.nearest,
-                    'input_encoding': args.input_encoding}
+                    'target': args.target}
 
     if args.train:
         #instantiate the model
@@ -368,12 +343,16 @@ if __name__ == "__main__":
         model = model_class(**model_kwargs)
 
         if multi_gpu:
-            model = torch_geometric.nn.DataParallel(model)
             print("Parallelizing the training..")
+            model = torch_geometric.nn.DataParallel(model)
+            #model = torch.nn.parallel.DistributedDataParallel(model)    ### TODO: make it compatible with DDP
 
         model.to(device)
 
-        model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size)
+        if args.classification_only:
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf")
+        else:
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both")
 
         outpath = osp.join(args.outpath, model_fname)
         if osp.isdir(outpath):
@@ -433,20 +412,16 @@ if __name__ == "__main__":
 # with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
 #     a = pickle.load(f)
 
-
-
-
-#
 # # testing a forward pass
 # class objectview(object):
 #     def __init__(self, d):
 #         self.__dict__ = d
 #
-# args = objectview({'train': True, 'n_train': 2, 'n_valid': 3, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-# 'batch_size': 3, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-# 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
+# args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 10, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
+# 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+# 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 0.0000000001, 'l1': 1, 'l2': 1, 'l3': 1, 'dropout': 0.5,
 # 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-# 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': True, 'evaluate_on_cpu': True})
+# 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001', 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True})
 #
 # # define the dataset (assumes the data exists as .pt files in "processed")
 # full_dataset_ttbar = PFGraphDataset(args.dataset)
@@ -486,96 +461,11 @@ if __name__ == "__main__":
 #
 # model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size)
 #
-# outpath = osp.join(args.outpath, model_fname)
-#
-# for batch in train_loader:
+# for batch in valid_loader:
 #     X = batch
 #     target_ids = batch.ygen_id
 #     target_p4 = batch.ygen
 #
 #     # forwardprop
-#     cand_ids, cand_p4, new_edge_index = model(X)
+#     cand_ids, cand_p4, target_ids, target_p4 = model(X)
 #     break
-#
-#
-#
-# batch
-#
-#
-#
-# weights = compute_weights(torch.max(target_ids,-1)[1], device)
-#
-# weights
-#
-#
-# batch
-#
-#
-# batch.ycand_id.argmax(axis=0)
-#
-#
-# len(batch.ycand_id)
-#
-# c0, c1, c2, c3, c4, c5 = 0, 0, 0, 0, 0, 0
-#
-# for i in range(len(batch.ygen_id)):
-#     if (batch.ygen_id[i][0]==1):
-#         c0=c0+1
-# for i in range(len(batch.ygen_id)):
-#     if (batch.ygen_id[i][1]==1):
-#         c1=c1+1
-# for i in range(len(batch.ygen_id)):
-#     if (batch.ygen_id[i][2]==1):
-#         c2=c2+1
-# for i in range(len(batch.ygen_id)):
-#     if (batch.ygen_id[i][3]==1):
-#         c3=c3+1
-# for i in range(len(batch.ygen_id)):
-#     if (batch.ygen_id[i][4]==1):
-#         c4=c4+1
-# for i in range(len(batch.ygen_id)):
-#     if (batch.ygen_id[i][5]==1):
-#         c5=c5+1
-#
-# c0
-# c1
-# c2
-# c3
-# c4
-# c5
-#
-#
-# c0+c1+c2+c3+c4+c5
-#
-#
-# c0/15704
-# c1/15704
-# c2/15704
-# c0/15704
-#
-# def compute_weights(target_ids, device):
-#     vs, cs = torch.unique(target_ids, return_counts=True)
-#     weights = torch.zeros(output_dim_id).to(device=device)
-#     for k, v in zip(vs, cs):
-#         weights[k] = 1.0/math.sqrt(float(v))
-#     return weights
-#
-#
-# compute_weights(torch.max(target_ids,-1)[1], device)
-#
-#
-# torch.max(target_ids,-1)[1]
-#
-# torch.unique(torch.max(target_ids,-1)[1], return_counts=True)
-#
-#
-#
-# torch.zeros(output_dim_id).to(device=device)
-# for k, v in zip(vs, cs):
-#     weights[k] = 1.0/math.sqrt(float(v))
-#
-#
-# weights
-#
-# 602
-# math.sqrt(900)
