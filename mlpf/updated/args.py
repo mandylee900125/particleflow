@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument("--n_test", type=int, default=2, help="number of data files to use for testing.. each file contains 100 events")
     parser.add_argument("--n_epochs", type=int, default=1, help="number of training epochs")
     parser.add_argument("--patience", type=int, default=100, help="patience before early stopping")
-    parser.add_argument("--hidden_dim", type=int, default=32, help="hidden dimension")
+    parser.add_argument("--hidden_dim", type=int, default=256, help="hidden dimension")
     parser.add_argument("--input_encoding", type=int, default=12, help="use an input encoding layer")
     parser.add_argument("--encoding_dim", type=int, default=256, help="encoded element dimension")
     parser.add_argument("--batch_size", type=int, default=1, help="Number of .pt files to load in parallel")
