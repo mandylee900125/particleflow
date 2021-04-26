@@ -379,6 +379,9 @@ if __name__ == "__main__":
         print(model_fname)
 
         # train the model
+        for param in model.parameters():
+            param.requires_grad = True
+
         model.train()
         train_loop()
 
