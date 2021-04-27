@@ -39,7 +39,6 @@ from torch_scatter import scatter_mean
 from torch_geometric.nn.inits import reset
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch_geometric.nn import GravNetConv
-from torch_geometric.data import Data, DataListLoader, Batch
 from torch.utils.data import random_split
 
 import torch_cluster
@@ -133,6 +132,10 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
     #setup confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
 
+    # for param in model.parameters():
+    #     print(param.data)
+    #     break
+
     for i, batch in enumerate(loader):
         t0 = time.time()
 
@@ -153,9 +156,8 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
         # computing loss
         weights = compute_weights(torch.max(target_ids_one_hot,-1)[1], device)
-        l1 = torch.nn.functional.cross_entropy(target_ids_one_hot, cand_ids, weight=weights) # for classifying PID
-        l1.requires_grad = True
-        l2 = alpha * torch.nn.functional.mse_loss(target_p4[msk2], cand_p4[msk2])  # for regressing p4
+        l1 = torch.nn.functional.cross_entropy(cand_ids_one_hot, target_ids, weight=weights) # for classifying PID
+        l2 = alpha * torch.nn.functional.mse_loss(cand_p4[msk2], target_p4[msk2])  # for regressing p4
 
         if args.classification_only:
             loss = l1
@@ -168,9 +170,14 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
         if is_train:
             # BACKPROP
+            #print(list(model.parameters())[1].grad)
+            a = list(model.parameters())[1].clone()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            b = list(model.parameters())[1].clone()
+            if torch.equal(a.data, b.data):
+                print('Model is not learning.. weights are not updating..')
 
         t1 = time.time()
 
