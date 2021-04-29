@@ -304,7 +304,7 @@ if __name__ == "__main__":
     # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0.0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
     # 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True})
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -338,7 +338,8 @@ if __name__ == "__main__":
                     'space_dim': args.space_dim,
                     'propagate_dimensions': args.propagate_dimensions,
                     'nearest': args.nearest,
-                    'target': args.target}
+                    'target': args.target,
+                    'nn1': args.nn1}
 
     if args.train:
         #instantiate the model

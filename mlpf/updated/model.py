@@ -27,11 +27,12 @@ class PFNet7(nn.Module):
         output_dim_p4=6,
         dropout_rate=0.0,
         space_dim=4, propagate_dimensions=22, nearest=16,
-        target="gen"):
+        target="gen", nn1=True):
 
         super(PFNet7, self).__init__()
 
         self.target = target
+        self.nn1 = nn1
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
@@ -40,15 +41,16 @@ class PFNet7(nn.Module):
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
 
         # (1) DNN
-        self.nn1 = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-            nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-            nn.Linear(hidden_dim, input_encoding),
-        )
+        if self.nn1:
+            self.nn1 = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, input_encoding),
+            )
 
         # (2) CNN: Gravnet layer
         self.conv1 = GravNetConv(input_encoding, encoding_dim, space_dim, propagate_dimensions, nearest)
@@ -83,7 +85,8 @@ class PFNet7(nn.Module):
         x = data.x
 
         # Encoder/Decoder step
-        x = self.nn1(x)
+        if self.nn1:
+            x = self.nn1(x)
 
         # Gravnet step
         x, edge_index, edge_weight = self.conv1(x)
