@@ -1,10 +1,14 @@
 from glob import glob
-import sys
-import os
+import sys, os
 import os.path as osp
+import pickle, math, time, numba, tqdm
 import numpy as np
 import pandas as pd
-import pickle, math, time, numba, tqdm
+import sklearn
+from sklearn.metrics import accuracy_score, confusion_matrix
+import matplotlib, mplhep
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 #Check if the GPU configuration has been provided
 import torch
@@ -32,36 +36,23 @@ import torch_geometric
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.transforms as T
-from torch_geometric.nn import EdgeConv, MessagePassing, EdgePooling, GATConv, GCNConv, JumpingKnowledge, GraphUNet, DynamicEdgeConv, DenseGCNConv
-from torch_geometric.nn import TopKPooling, SAGPooling, SGConv
 from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 from torch_scatter import scatter_mean
 from torch_geometric.nn.inits import reset
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch_geometric.nn import GravNetConv
 from torch.utils.data import random_split
-
 import torch_cluster
 
-import matplotlib, mplhep
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-import sklearn
-from sklearn.metrics import accuracy_score, confusion_matrix
-
+sys.path.insert(1, '../../plotting/')
+sys.path.insert(1, '../../mlpf/plotting/')
 import args
 from args import parse_args
-
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
 from evaluate import make_plots, Evaluate
-
-sys.path.insert(1, '../../plotting/')
-sys.path.insert(1, '../../mlpf/plotting/')
 from plot_utils import plot_confusion_matrix
-
 from model import PFNet7
 
 #Ignore divide by 0 errors
@@ -112,7 +103,6 @@ def test(model, loader, epoch, alpha, target_type, device):
     with torch.no_grad():
         ret = train(model, loader, epoch, None, alpha, target_type, device)
     return ret
-
 
 def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
