@@ -41,6 +41,7 @@ import os.path as osp
 
 from plot_utils import cms_label, particle_label, sample_label
 from plot_utils import plot_E_reso, plot_eta_reso, plot_phi_reso, bins
+from plot_utils import plot_confusion_matrix
 import torch
 import seaborn as sns
 
@@ -143,32 +144,13 @@ def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
 
     return fig
 
-def plot_confusion_matrix(confusion_matrix, fname, epoch):
-    fig, ax = plt.subplots()
-    sns.heatmap(confusion_matrix, annot=True, ax = ax) #annot=True to annotate cells
-    ax.set_title('Reconstructed PID (normed to gen) at epoch' + str(epoch))
-    ax.set_xlabel('MLPF PID')
-    ax.set_ylabel('Gen PID')
-    ax.xaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
-    ax.yaxis.set_ticklabels(["none", "ch.had", "n.had", "g", "el", "mu"])
-    plt.savefig(fname + '.png')
-    plt.close(fig)
-
-    return fig
-
 def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
-
-    conf_matrix = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
-                                    np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6))
 
     conf_matrix_norm = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
                                     np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6), normalize="true")
 
-    plot_confusion_matrix(conf_matrix, fname = outpath+'conf_matrix_test' + str(epoch), epoch=epoch)
-    plot_confusion_matrix(conf_matrix_norm, fname = outpath+'conf_matrix_norm_test' + str(epoch), epoch=epoch)
+    plot_confusion_matrix(conf_matrix_norm, ["none", "ch.had", "n.had", "g", "el", "mu"], fname = outpath + 'conf_matrix_norm_test' + str(epoch), epoch=epoch)
 
-    with open(outpath + '/conf_matrix_test' + str(epoch) + '.pkl', 'wb') as f:
-        pickle.dump(conf_matrix, f)
     with open(outpath + '/conf_matrix_norm_test' + str(epoch) + '.pkl', 'wb') as f:
         pickle.dump(conf_matrix_norm, f)
 

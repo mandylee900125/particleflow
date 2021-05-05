@@ -27,12 +27,13 @@ class PFNet7(nn.Module):
         output_dim_p4=6,
         dropout_rate=0.0,
         space_dim=4, propagate_dimensions=22, nearest=16,
-        target="gen", nn1=True):
+        target="gen", nn1=True, nn3=True):
 
         super(PFNet7, self).__init__()
 
         self.target = target
         self.nn1 = nn1
+        self.nn3 = nn3
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
@@ -70,15 +71,16 @@ class PFNet7(nn.Module):
         )
 
         # (5) DNN layer: regressing p4
-        self.nn3 = nn.Sequential(
-            nn.Linear(encoding_dim + output_dim_id, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-            nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-            nn.Linear(hidden_dim, output_dim_p4),
-        )
+        if self.nn3:
+            self.nn3 = nn.Sequential(
+                nn.Linear(encoding_dim + output_dim_id, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, output_dim_p4),
+            )
 
     def forward(self, data):
 
@@ -100,8 +102,11 @@ class PFNet7(nn.Module):
         cand_ids = self.nn2(self.dropout(x))
 
         # DNN to predict p4 (after a dropout)
-        nn3_input = torch.cat([x, cand_ids], axis=-1)
-        cand_p4 = self.nn3(self.dropout(nn3_input))
+        if self.nn3:
+            nn3_input = torch.cat([x, cand_ids], axis=-1)
+            cand_p4 = self.nn3(self.dropout(nn3_input))
+        else:
+            cand_p4=torch.zeros_like(data.ycand)
 
         if self.target=='cand':
             return cand_ids, cand_p4, data.ycand_id, data.ycand

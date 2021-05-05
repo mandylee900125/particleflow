@@ -14,6 +14,7 @@ except ImportError:
 
 # copied it from pytorch_geometric source code
 # ADDED: retrieve edge_index, retrieve edge_weight
+# CHANGED: self.lin -> self.lin_p
 class GravNetConv(MessagePassing):
     r"""The GravNet operator from the `"Learning Representations of Irregular
     Particle-detector Geometry with Distance-weighted Graph
@@ -55,14 +56,14 @@ class GravNetConv(MessagePassing):
 
         self.lin_s = Linear(in_channels, space_dimensions)
         self.lin_h = Linear(in_channels, propagate_dimensions)
-        self.lin = Linear(in_channels + 2 * propagate_dimensions, out_channels)
+        self.lin_p = Linear(in_channels + 2 * propagate_dimensions, out_channels)
 
         self.reset_parameters()
 
     def reset_parameters(self):
         self.lin_s.reset_parameters()
         self.lin_h.reset_parameters()
-        self.lin.reset_parameters()
+        self.lin_p.reset_parameters()
 
 
     def forward(
@@ -99,7 +100,7 @@ class GravNetConv(MessagePassing):
                              edge_weight=edge_weight,
                              size=(s_l.size(0), s_r.size(0)))
 
-        return self.lin(torch.cat([out, x[1]], dim=-1)), edge_index, edge_weight
+        return self.lin_p(torch.cat([out, x[1]], dim=-1)), edge_index, edge_weight
 
 
     def message(self, x_j: Tensor, edge_weight: Tensor) -> Tensor:

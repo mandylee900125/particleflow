@@ -289,12 +289,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 3, 'patience': 100, 'hidden_dim':32,
+    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32,
     # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1,
     # 'overwrite': True,
     # 'load': False, 'load_epoch': 2, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_3_batch_size_2_lr_0.001_clf',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'nn3': False})
+    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'nn3': False})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
