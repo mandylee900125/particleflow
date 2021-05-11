@@ -53,7 +53,7 @@ from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
 from evaluate import make_plots, Evaluate
 from plot_utils import plot_confusion_matrix
-from model import PFNet7
+from model_noskip import PFNet7
 
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
