@@ -27,12 +27,13 @@ class PFNet7(nn.Module):
         output_dim_p4=6,
         dropout_rate=0.0,
         space_dim=4, propagate_dimensions=22, nearest=16,
-        target="gen", nn1=True, nn3=True):
+        target="gen", nn1=True, conv2=True, nn3=True):
 
         super(PFNet7, self).__init__()
 
         self.target = target
         self.nn1 = nn1
+        self.conv2 = conv2
         self.nn3 = nn3
 
         self.act = nn.LeakyReLU
@@ -57,7 +58,8 @@ class PFNet7(nn.Module):
         self.conv1 = GravNetConv(input_encoding, encoding_dim, space_dim, propagate_dimensions, nearest)
 
         # (3) CNN: GraphConv
-        self.conv2 = GraphConv(encoding_dim, encoding_dim)
+        if self.conv2:
+            self.conv2 = GraphConv(encoding_dim, encoding_dim)
 
         # (4) DNN layer: classifying PID
         self.nn2 = nn.Sequential(
@@ -95,8 +97,9 @@ class PFNet7(nn.Module):
         x = self.act_f(x)                 # act by nonlinearity
 
         # GraphConv step
-        x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
-        x = self.act_f(x)                 # act by nonlinearity
+        if self.conv2:
+            x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
+            x = self.act_f(x)                 # act by nonlinearity
 
         # DNN to predict PID (after a dropout)
         cand_ids = self.nn2(self.dropout(x))

@@ -59,21 +59,22 @@ from model import PFNet7
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task, title):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
     model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
     model_user = os.environ['USER']
 
-    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}'.format(
+    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}_{}'.format(
         model_name,
         target_type,
         n_train,
         n_epochs,
         batch_size,
         lr,
-        task)
+        task,
+        title)
     return model_fname
 
 def compute_weights(target_ids_one_hot, device):
@@ -294,7 +295,7 @@ if __name__ == "__main__":
     # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
     # 'load': False, 'load_epoch': 2, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_3_batch_size_2_lr_0.001_clf',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'nn3': False})
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': True, 'conv2': True, 'nn3': True, 'title':''})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -330,6 +331,7 @@ if __name__ == "__main__":
                     'nearest': args.nearest,
                     'target': args.target,
                     'nn1': args.nn1,
+                    'conv2': args.conv2,
                     'nn3': args.nn3}
 
     if args.train:
@@ -344,10 +346,17 @@ if __name__ == "__main__":
 
         model.to(device)
 
+        if args.nn1:
+            args.title=args.title+'_nn1'
+        if args.nn3:
+            args.title=args.title+'_nn3'
+        if args.conv2:
+            args.title=args.title+'_conv2'
+
         if args.classification_only:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf")
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf", args.title)
         else:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both")
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both", args.title)
 
         outpath = osp.join(args.outpath, model_fname)
         if osp.isdir(outpath):
