@@ -63,7 +63,7 @@ from model_io import model_io
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task, title):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
@@ -77,7 +77,8 @@ def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_si
         n_epochs,
         batch_size,
         lr,
-        task)
+        task,
+        title)
     return model_fname
 
 
@@ -90,12 +91,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32, 'input_encoding': 12, 'encoding_dim': 256,
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
     # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../../prp/models/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0.0,
+    # 'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_2_batch_size_2_lr_0.001_clf',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'nn3': False,
+    # 'load': True, 'load_epoch': 19, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_20_batch_size_2_lr_0.001_clf__noskip',
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'conv2': False, 'nn3': False, 'title': '',
     # 'explain': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
@@ -132,20 +133,51 @@ if __name__ == "__main__":
                     'nearest': args.nearest,
                     'target': args.target,
                     'nn1': args.nn1,
+                    'conv2': args.conv2,
                     'nn3': args.nn3}
 
     print('Loading a previously trained model..')
     model = model_class(**model_kwargs)
     outpath = args.outpath + args.load_model
     PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
-    model.load_state_dict(torch.load(PATH, map_location=device))
+
+    state_dict = torch.load(PATH, map_location=device)
+
+    if "DataParallel" in args.load_model:
+        state_dict = torch.load(PATH, map_location=device)
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove module.
+            new_state_dict[name] = v
+        state_dict=new_state_dict
+
+    model.load_state_dict(state_dict)
 
     if args.explain:
         model.train()
-        state_dict=torch.load(PATH,map_location=device)
         print(model)
+
         results = []
         signal =torch.tensor([1,0,0,0,0,0],dtype=torch.float32).to(device)
+
+        # create some hooks to retrieve intermediate activations
+        activation = {}
+        hooks={}
+
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = input[0]
+            return hook
+
+        param=dict()
+        for i, parameter in enumerate(model.parameters()):
+            param[i]=parameter
+            print(parameter.shape)
+
+        for name, module in model.named_modules():
+            if (type(module)==nn.Linear) or (type(module)==nn.LeakyReLU):
+                hooks[name] = module.register_forward_hook(get_activation("." + name))
 
         for i, batch in enumerate(train_loader):
             t0 = time.time()
@@ -155,64 +187,27 @@ if __name__ == "__main__":
             else:
                 X = batch.to(device)
 
-            # create some hooks to retrieve intermediate activations
-            activation = {}
-            hooks={}
-
-            def get_activation(name):
-                def hook(model, input, output):
-                    activation[name] = input[0]
-                return hook
-
-            def get_activation(name):
-                def hook(model, input, output):
-                    activation[name] = input[0]
-                return hook
-
-            # for name, module in model.model.named_modules():
-            #     if (type(module)==nn.Linear or type(module)==nn.LeakyReLU or type(module)==nn.Identity):
-            #         hooks[name] = module.register_forward_hook(get_activation("." + name))
-            #     else:
-            #         print(name)
-
             if i==0:
-                model.conv1.register_forward_hook(get_activation("conv1"))
-                model.conv2.register_forward_hook(get_activation("conv2"))
-                model.dropout.register_forward_hook(get_activation("." + "dropout"))
-                model.nn2[0].register_forward_hook(get_activation(".nn2.0"))
-                model.nn2[1].register_forward_hook(get_activation(".nn2.1"))
-                model.nn2[2].register_forward_hook(get_activation(".nn2.2"))
-                model.nn2[3].register_forward_hook(get_activation(".nn2.3"))
-                model.nn2[4].register_forward_hook(get_activation(".nn2.4"))
-                model.nn2[5].register_forward_hook(get_activation(".nn2.5"))
-                model.nn2[6].register_forward_hook(get_activation(".nn2.6"))
-
-                cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, edge_index, edge_weight = model(X)
+                # could be defined better
+                # I run at least one forward pass to get the activation to use them in defining the LRP layers
+                cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, edge_index, edge_weight, after_message, before_message = model(X)
                 model=model_io(model,state_dict,dict(),activation)
                 explainer=LRP(model)
 
             else:
-                model.model.conv1.register_forward_hook(get_activation("conv1"))
-                model.model.conv2.register_forward_hook(get_activation("conv2"))
-                model.model.dropout.register_forward_hook(get_activation("." + "dropout"))
-                model.model.nn2[0].register_forward_hook(get_activation(".nn2.0"))
-                model.model.nn2[1].register_forward_hook(get_activation(".nn2.1"))
-                model.model.nn2[2].register_forward_hook(get_activation(".nn2.2"))
-                model.model.nn2[3].register_forward_hook(get_activation(".nn2.3"))
-                model.model.nn2[4].register_forward_hook(get_activation(".nn2.4"))
-                model.model.nn2[5].register_forward_hook(get_activation(".nn2.5"))
-                model.model.nn2[6].register_forward_hook(get_activation(".nn2.6"))
-
-                cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, edge_index, edge_weight = model.model(X)
+                cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, edge_index, edge_weight, after_message, before_message = model.model(X)
 
             to_explain={"A":activation,"inputs":dict(x=X.x,
                                                 batch=X.batch),"y":target_ids_one_hot,"R":dict(), "pred":cand_ids_one_hot,
-                                                "edge_index":edge_index, "edge_weight":edge_weight}
+                                                "edge_index":edge_index, "edge_weight":edge_weight, "after_message":after_message, "before_message":before_message}
+
+            print('LRP layers are:', to_explain['A'].keys())
 
             model.set_dest(to_explain["A"])
-            results.append(explainer.explain(to_explain,save=False,return_result=True,
-            signal=signal))
-            # print(results[i])
+            results.append(explainer.explain(to_explain,save=False,return_result=True, signal=signal))
+
+            print(results[i][0])         # 0 indicates the first layer (i.e. relevance scores of the input)
+            break
 
     # evaluate the model
     if args.evaluate:

@@ -22,17 +22,18 @@ from torch_geometric.nn import GraphConv
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=125, input_encoding=12, encoding_dim=32,
+        input_dim=12, hidden_dim=256, input_encoding=12, encoding_dim=125,
         output_dim_id=6,
         output_dim_p4=6,
         dropout_rate=0.0,
         space_dim=4, propagate_dimensions=22, nearest=16,
-        target="gen", nn1=True, nn3=True):
+        target="gen", nn1=True, conv2=True, nn3=True):
 
         super(PFNet7, self).__init__()
 
         self.target = target
         self.nn1 = nn1
+        self.conv2 = conv2
         self.nn3 = nn3
 
         self.act = nn.LeakyReLU
@@ -57,7 +58,8 @@ class PFNet7(nn.Module):
         self.conv1 = GravNetConv(input_encoding, encoding_dim, space_dim, propagate_dimensions, nearest)
 
         # (3) CNN: GraphConv
-        self.conv2 = GraphConv(encoding_dim, encoding_dim)
+        if self.conv2:
+            self.conv2 = GraphConv(encoding_dim, encoding_dim)
 
         # (4) DNN layer: classifying PID
         self.nn2 = nn.Sequential(
@@ -91,12 +93,13 @@ class PFNet7(nn.Module):
             x = self.nn1(x)
 
         # Gravnet step
-        x, edge_index, edge_weight = self.conv1(x)
+        x, edge_index, edge_weight, after_message, before_message = self.conv1(x)
         x = self.act_f(x)                 # act by nonlinearity
 
         # GraphConv step
-        x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
-        x = self.act_f(x)                 # act by nonlinearity
+        if self.conv2:
+            x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
+            x = self.act_f(x)                 # act by nonlinearity
 
         # DNN to predict PID (after a dropout)
         cand_ids = self.nn2(self.dropout(x))
@@ -109,10 +112,10 @@ class PFNet7(nn.Module):
             cand_p4=torch.zeros_like(data.ycand)
 
         if self.target=='cand':
-            return cand_ids, cand_p4, data.ycand_id, data.ycand, edge_index, edge_weight
+            return cand_ids, cand_p4, data.ycand_id, data.ycand, edge_index, edge_weight, after_message, before_message
 
         elif self.target=='gen':
-            return cand_ids, cand_p4, data.ygen_id, data.ygen, edge_index, edge_weight
+            return cand_ids, cand_p4, data.ygen_id, data.ygen, edge_index, edge_weight, after_message, before_message
 
         else:
             print('Target type unknown..')

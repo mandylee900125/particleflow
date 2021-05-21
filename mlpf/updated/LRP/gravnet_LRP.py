@@ -14,6 +14,8 @@ except ImportError:
 
 # copied it from pytorch_geometric source code
 # ADDED: retrieve edge_index, retrieve edge_weight
+# ADDED: retrieve before and after message MessagePassing
+# REMOVED: skip connection
 class GravNetConv(MessagePassing):
     r"""The GravNet operator from the `"Learning Representations of Irregular
     Particle-detector Geometry with Distance-weighted Graph
@@ -55,7 +57,7 @@ class GravNetConv(MessagePassing):
 
         self.lin_s = Linear(in_channels, space_dimensions)
         self.lin_h = Linear(in_channels, propagate_dimensions)
-        self.lin_p = Linear(in_channels + 2 * propagate_dimensions, out_channels)
+        self.lin_p = Linear(propagate_dimensions, out_channels)
 
         self.reset_parameters()
 
@@ -99,7 +101,7 @@ class GravNetConv(MessagePassing):
                              edge_weight=edge_weight,
                              size=(s_l.size(0), s_r.size(0)))
 
-        return self.lin_p(torch.cat([out, x[1]], dim=-1)), edge_index, edge_weight
+        return self.lin_p(out), edge_index, edge_weight, out, h_l
 
 
     def message(self, x_j: Tensor, edge_weight: Tensor) -> Tensor:
@@ -111,7 +113,8 @@ class GravNetConv(MessagePassing):
                            reduce='mean')
         out_max = scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
                           reduce='max')
-        return torch.cat([out_mean, out_max], dim=-1)
+        # return torch.cat([out_mean, out_max], dim=-1)
+        return out_mean
 
     def __repr__(self):
         return '{}({}, {}, k={})'.format(self.__class__.__name__,
