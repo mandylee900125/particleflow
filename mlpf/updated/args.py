@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument("--nn1", action=BoolArg, default=True, help="Adds an encoder/decoder step before gravnet..")
     parser.add_argument("--conv2", action=BoolArg, default=True, help="Adds an extra GConv after gravnet..")
     parser.add_argument("--nn3", action=BoolArg, default=True, help="Adds the network to regress p4..")
-    parser.add_argument("--title", action=str, default='_', help="Appends this title to the model's name")
+    parser.add_argument("--title", type=str, default='', help="Appends this title to the model's name")
 
     parser.add_argument("--explain", action=BoolArg, default=False, help="Runs LRP for interpreting the GNN..")
 
