@@ -225,26 +225,9 @@ output_dim_p4 = 6
 
 patience = args.patience
 
-model_classes = {"PFNet7": PFNet7}
-
-model_class = model_classes[args.model]
-model_kwargs = {'input_dim': input_dim,
-                'hidden_dim': args.hidden_dim,
-                'input_encoding': args.input_encoding,
-                'encoding_dim': args.encoding_dim,
-                'output_dim_id': output_dim_id,
-                'output_dim_p4': output_dim_p4,
-                'dropout_rate': args.dropout,
-                'space_dim': args.space_dim,
-                'propagate_dimensions': args.propagate_dimensions,
-                'nearest': args.nearest,
-                'target': args.target,
-                'nn1': args.nn1,
-                'conv2': args.conv2,
-                'nn3': args.nn3}
-
-model = model_class(**model_kwargs)
 net = Net(12).float()
+net.to(device)
+
 for batch in train_loader:
     X = batch.to(device)
 
