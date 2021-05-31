@@ -1,7 +1,28 @@
 import numpy as np
 import mplhep
 
+#Check if the GPU configuration has been provided
 import torch
+use_gpu = torch.cuda.device_count()>0
+multi_gpu = torch.cuda.device_count()>1
+
+try:
+    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
+        import setGPU
+        if multi_gpu:
+            print('Will use multi_gpu..')
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+        else:
+            print('Will use single_gpu..')
+except Exception as e:
+    print("Could not import setGPU, running CPU-only")
+
+#define the global base device
+if use_gpu:
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
+
 import torch_geometric
 
 import torch.nn as nn
@@ -151,7 +172,7 @@ class GraphBuildingLSH(torch.nn.Module):
         self.k = k
         self.bin_size = bin_size
         self.max_num_bins = max_num_bins
-        self.codebook = torch.randn((feature_dim, max_num_bins//2))
+        self.codebook = torch.randn((feature_dim, max_num_bins//2)).to(device)
 
         self.reset_parameters()
 
@@ -230,11 +251,6 @@ def stacked_sparse(dm):
     edge_values = dm.values() #(num_batch*nodes)
 
     return edge_index, edge_values
-
-
-
-
-
 
 
 
