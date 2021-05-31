@@ -74,8 +74,8 @@ class GraphBuildingLSH(torch.nn.Module):
         self.k = k
         self.bin_size = bin_size
         self.max_num_bins = max_num_bins
-        print(feature_dim)        
-        self.codebook = torch.randn((feature_dim, max_num_bins//2))
+        print(feature_dim)
+        self.codebook = torch.randn((feature_dim, max_num_bins//2)).to(device)
 
         self.reset_parameters()
 
