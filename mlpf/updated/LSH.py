@@ -86,6 +86,9 @@ class GraphBuildingLSH(torch.nn.Module):
         n_bins = shp[1] // self.bin_size
 
         assert(n_bins <= self.max_num_bins)
+
+        print(feature_dim)
+
         mul = torch.matmul(x, self.codebook[:, :n_bins//2])
         cmul = torch.cat([mul, -mul], axis=-1)
 
@@ -182,7 +185,7 @@ class Net(torch.nn.Module):
 
         i1 = self.lin1(x) #(n_batches, nodes, feature_dim)
         dm = self.dm(i1) #(n_batches, nodes, nodes)
-        print('ok')
+
         edge_index, edge_vals = stacked_sparse(dm)
 
         xflat = torch.reshape(x, (n_batches*n_points, x.shape[-1]))
