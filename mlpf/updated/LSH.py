@@ -74,6 +74,7 @@ class GraphBuildingLSH(torch.nn.Module):
         self.k = k
         self.bin_size = bin_size
         self.max_num_bins = max_num_bins
+        print(feature_dim)        
         self.codebook = torch.randn((feature_dim, max_num_bins//2))
 
         self.reset_parameters()
@@ -86,8 +87,6 @@ class GraphBuildingLSH(torch.nn.Module):
         n_bins = shp[1] // self.bin_size
 
         assert(n_bins <= self.max_num_bins)
-
-        print(feature_dim)
 
         mul = torch.matmul(x, self.codebook[:, :n_bins//2])
         cmul = torch.cat([mul, -mul], axis=-1)
