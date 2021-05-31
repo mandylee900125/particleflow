@@ -148,7 +148,7 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
         # computing loss
         weights = compute_weights(torch.max(target_ids_one_hot,-1)[1], device)
         l1 = torch.nn.functional.cross_entropy(cand_ids_one_hot, target_ids, weight=weights) # for classifying PID
-        l2 = alpha * torch.nn.functional.mse_loss(cand_p4, target_p4)  # for regressing p4
+        l2 = alpha * torch.nn.functional.mse_loss(cand_p4[msk2], target_p4[msk2])  # for regressing p4
 
         if args.classification_only:
             loss = l1
@@ -294,8 +294,8 @@ if __name__ == "__main__":
     # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': False, 'load_epoch': 2, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_3_batch_size_2_lr_0.001_clf',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'conv2': True, 'nn3': False, 'title': ''})
+    # 'load': False, 'load_epoch': 27 , 'load_model': 'DataParallel_gen_ntrain_400_nepochs_100_batch_size_4_lr_0.0001_both_noskip',
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': False, 'nn3': True, 'title': ''})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
