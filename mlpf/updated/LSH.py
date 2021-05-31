@@ -203,7 +203,7 @@ args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_ep
 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-'load': False, 'load_epoch': 27 , 'load_model': 'DataParallel_gen_ntrain_400_nepochs_100_batch_size_4_lr_0.0001_both_noskip',
+'load': False, 'load_epoch': 20 , 'load_model': 'DataParallel_gen_ntrain_400_nepochs_100_batch_size_4_lr_0.0001_both_noskip_noskip',
 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': False, 'nn3': False, 'title': ''})
 
 # define the dataset (assumes the data exists as .pt files in "processed")
