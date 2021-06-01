@@ -87,8 +87,11 @@ class GraphBuildingLSH(torch.nn.Module):
         assert(n_bins <= self.max_num_bins)
 
         dev = x.device
+        ss = self.codebook[:, :n_bins//2].to(dev)
+        print('ok')
 
-        mul = torch.matmul(x, self.codebook[:, :n_bins//2].to(dev))
+        mul = torch.matmul(x, ss)
+        print('not ok')
         cmul = torch.cat([mul, -mul], axis=-1)
 
         bin_idx = torch.argmax(cmul, axis=-1)
