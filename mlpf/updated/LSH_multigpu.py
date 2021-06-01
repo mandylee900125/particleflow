@@ -188,16 +188,19 @@ class Net(torch.nn.Module):
         i1 = self.lin1(x) #(n_batches, nodes, feature_dim)
 
         dm = self.dm(i1) #(n_batches, nodes, nodes)
-        print('ok000')
 
         edge_index, edge_vals = stacked_sparse(dm)
         print('ok')
 
         xflat = torch.reshape(x, (n_batches*n_points, x.shape[-1]))
+        print('ok1')
         i2 = self.gcn(xflat, edge_index, edge_vals) #(n_batches, nodes, 32)
+        print('ok2')
         i2 = torch.reshape(i2, (n_batches, n_points, i2.shape[-1]))
+        print('ok3')
 
         i3 = self.lin2(i2) #(n_batches, nodes, 1)
+        print('ok4')
 
         return i3, dm
 
