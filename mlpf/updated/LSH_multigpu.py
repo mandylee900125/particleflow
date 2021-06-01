@@ -86,12 +86,10 @@ class GraphBuildingLSH(torch.nn.Module):
         assert(n_bins <= self.max_num_bins)
 
         dev = x.device
-        print('ok')
+
         ss = self.codebook[:, :n_bins//2].to(dev)
-        print('ok1')
 
         mul = torch.matmul(x,ss)
-        print('ok2')
         cmul = torch.cat([mul, -mul], axis=-1)
         print('ok3')
 
@@ -109,6 +107,7 @@ class GraphBuildingLSH(torch.nn.Module):
 
         #(batches, bins, nodes, neighbors)
         topk = torch.topk(dm, self.k, axis=-1)
+        print('ok4')
 
         sps = []
         for ibatch in range(dm.shape[0]):
@@ -130,6 +129,8 @@ class GraphBuildingLSH(torch.nn.Module):
             src = torch.cat(src)
             dst = torch.cat(dst)
             val = torch.cat(val)
+
+            print('ok5')
 
             sp = torch.sparse_coo_tensor(
                 torch.stack([src, dst]), val,
