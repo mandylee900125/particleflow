@@ -232,6 +232,7 @@ if multi_gpu:
 net.to(device)
 
 for batch in train_loader:
+    print(batch)
     if multi_gpu:
         X = batch
     else:
