@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument("--outpath", type=str, default = '../../../test_tmp_delphes/experiments/', help="Output folder")
     parser.add_argument("--optimizer", type=str, default='adam', choices=["adam", "adamw"], help="optimizer to use")
     parser.add_argument("--lr", type=float, default=1e-6, help="learning rate")
-    parser.add_argument("--alpha", type=float, default=1.0, help="Loss multiplier for pdg-id classification.. recall: loss = clf + alpha*reg")
+    parser.add_argument("--alpha", type=float, default=2e-4, help="Loss multiplier for pdg-id classification.. recall: loss = clf + alpha*reg")
     parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate")
     parser.add_argument("--space_dim", type=int, default=4, help="Spatial dimension for clustering in gravnet layer")
     parser.add_argument("--propagate_dimensions", type=int, default=22, help="The number of features to be propagated between the vertices")
