@@ -27,7 +27,6 @@ multi_gpu = torch.cuda.device_count()>1
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
-        multi_gpu=0
         if multi_gpu:
             print('Will use multi_gpu..')
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -236,7 +235,7 @@ for batch in train_loader:
     if multi_gpu:
         X = batch
     else:
-        X = batch[0].to(device)
+        X = batch.to(device)
 
     # Forwardprop
     cand_ids_one_hot, s = net(X)
