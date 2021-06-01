@@ -226,10 +226,18 @@ output_dim_p4 = 6
 patience = args.patience
 
 net = Net(12).float()
+
+
+if multi_gpu:
+    print("Parallelizing the training..")
+    net = torch_geometric.nn.DataParallel(net)
 net.to(device)
 
 for batch in train_loader:
-    X = batch.to(device)
+    if multi_gpu:
+        X = batch
+    else:
+        X = batch.to(device)
 
     # Forwardprop
     cand_ids_one_hot, s = net(X)
