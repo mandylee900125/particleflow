@@ -27,6 +27,7 @@ multi_gpu = torch.cuda.device_count()>1
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
+        multi_gpu=0
         if multi_gpu:
             print('Will use multi_gpu..')
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -40,7 +41,7 @@ if use_gpu:
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
-multi_gpu=0
+
 import torch_geometric
 import torch.nn as nn
 import torch.nn.functional as F
