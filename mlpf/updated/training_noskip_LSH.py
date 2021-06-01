@@ -399,7 +399,20 @@ if __name__ == "__main__":
             model = model_class(**model_kwargs)
             outpath = args.outpath + args.load_model
             PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
-            model.load_state_dict(torch.load(PATH, map_location=device))
+
+            state_dict = torch.load(PATH, map_location=device)
+
+            if "DataParallel" in args.load_model:
+                state_dict = torch.load(PATH, map_location=device)
+                from collections import OrderedDict
+                new_state_dict = OrderedDict()
+                for k, v in state_dict.items():
+                    name = k[7:] # remove module.
+                    new_state_dict[name] = v
+                    # print('name is:', name)
+                state_dict=new_state_dict
+
+            model.load_state_dict(state_dict)
 
     # evaluate the model
     if args.evaluate:
