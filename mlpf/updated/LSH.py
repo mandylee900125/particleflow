@@ -183,6 +183,7 @@ class Net(torch.nn.Module):
         n_points = x.shape[1]
 
         i1 = self.lin1(x) #(n_batches, nodes, feature_dim)
+        print('ok000')
         dm = self.dm(i1) #(n_batches, nodes, nodes)
 
         edge_index, edge_vals = stacked_sparse(dm)
