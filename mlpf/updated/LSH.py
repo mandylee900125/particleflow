@@ -154,9 +154,6 @@ def stacked_sparse(dm):
 
     return edge_index, edge_values
 
-
-
-
 class Net(torch.nn.Module):
     def __init__(self, num_node_features):
         super(Net, self).__init__()
@@ -227,10 +224,10 @@ patience = args.patience
 
 net = Net(12).float()
 
-
 if multi_gpu:
     print("Parallelizing the training..")
     net = torch_geometric.nn.DataParallel(net)
+
 net.to(device)
 
 for batch in train_loader:
