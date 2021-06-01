@@ -136,7 +136,9 @@ class GraphBuildingLSH(torch.nn.Module):
                 torch.stack([src, dst]), val,
                 requires_grad=True, size=(shp[1], shp[1])
             )
+            print('ok6')
             sps.append(sp)
+            print('ok7')
 
         #Sparse (batches, nodes, nodes)
         sp = torch.stack(sps).coalesce()
