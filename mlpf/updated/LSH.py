@@ -65,7 +65,6 @@ from evaluate import make_plots, Evaluate
 from plot_utils import plot_confusion_matrix
 from model_noskip import PFNet7
 
-
 class GraphBuildingLSH(torch.nn.Module):
     def __init__(self, feature_dim, bin_size, max_num_bins, k, **kwargs):
         super(GraphBuildingLSH, self).__init__(**kwargs)
@@ -192,7 +191,6 @@ class Net(torch.nn.Module):
         i3 = self.lin2(i2) #(n_batches, nodes, 1)
 
         return i3, dm
-
 
 # the next part initializes some args values (to run the script not from terminal)
 class objectview(object):
