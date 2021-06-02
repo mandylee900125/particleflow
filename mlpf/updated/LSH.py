@@ -65,7 +65,6 @@ from evaluate import make_plots, Evaluate
 from plot_utils import plot_confusion_matrix
 from model_noskip import PFNet7
 
-
 class GraphBuildingLSH(torch.nn.Module):
     def __init__(self, feature_dim, bin_size, max_num_bins, k, **kwargs):
         super(GraphBuildingLSH, self).__init__(**kwargs)
