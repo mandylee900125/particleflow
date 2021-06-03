@@ -201,7 +201,7 @@ def plot_confusion_matrix(cm, target_names,
     fig = plt.figure(figsize=(5, 4))
     ax = plt.axes()
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title + 'at epoch' + str(epoch))
+    plt.title(title + ' at epoch' + str(epoch))
     plt.colorbar()
 
     if target_names is not None:
