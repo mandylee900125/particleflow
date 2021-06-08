@@ -87,6 +87,12 @@ class PFNet7(nn.Module):
                 nn.Linear(hidden_dim, hidden_dim),
                 self.act(),
                 nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
                 nn.Linear(hidden_dim, output_dim_p4),
             )
 
