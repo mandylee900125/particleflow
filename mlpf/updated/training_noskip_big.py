@@ -74,7 +74,7 @@ def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_si
         batch_size,
         lr,
         task,
-        alpha
+        alpha,
         title)
     return model_fname
 
@@ -291,8 +291,8 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 10, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
-    # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 2, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
+    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
     # 'load': False, 'load_epoch': 10, 'load_model': 'DataParallel_gen_ntrain_400_nepochs_100_batch_size_4_lr_0.0001_both_alpha_2e-4_noskip_nn3',
@@ -416,7 +416,11 @@ if __name__ == "__main__":
         model.train()
         train_loop()
 
-    # evaluate the model
+        # evaluate on training data.. make regression plots
+        os.makedirs(outpath+'/train_loader')
+        Evaluate(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs)
+
+    # evaluate the model on test data
     if args.evaluate:
         if args.evaluate_on_cpu:
             device = "cpu"
@@ -425,7 +429,8 @@ if __name__ == "__main__":
         model.eval()
 
         if args.train:
-            Evaluate(model, train_loader, outpath, args.target, device, args.n_epochs)
+            os.makedirs(outpath+'/test_loader')
+            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs)
         elif args.load:
             Evaluate(model, test_loader, outpath, args.target, device, args.load_epoch)
 
