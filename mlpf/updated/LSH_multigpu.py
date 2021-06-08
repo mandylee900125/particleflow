@@ -91,7 +91,6 @@ class GraphBuildingLSH(torch.nn.Module):
 
         mul = torch.matmul(x,ss)
         cmul = torch.cat([mul, -mul], axis=-1)
-        print('ok3')
 
         bin_idx = torch.argmax(cmul, axis=-1)
         bins_split = torch.reshape(torch.argsort(bin_idx), (shp[0], n_bins, shp[1]//n_bins))
@@ -107,7 +106,6 @@ class GraphBuildingLSH(torch.nn.Module):
 
         #(batches, bins, nodes, neighbors)
         topk = torch.topk(dm, self.k, axis=-1)
-        print('ok4')
 
         sps = []
         for ibatch in range(dm.shape[0]):
@@ -136,11 +134,9 @@ class GraphBuildingLSH(torch.nn.Module):
             )
 
             sps.append(sp)
-        print('ok7')
 
         #Sparse (batches, nodes, nodes)
         sp = torch.stack(sps).coalesce()
-        print('ok8')
 
         return sp
 
@@ -190,17 +186,12 @@ class Net(torch.nn.Module):
         dm = self.dm(i1) #(n_batches, nodes, nodes)
 
         edge_index, edge_vals = stacked_sparse(dm)
-        print('ok')
 
         xflat = torch.reshape(x, (n_batches*n_points, x.shape[-1]))
-        print('ok1')
         i2 = self.gcn(xflat, edge_index, edge_vals) #(n_batches, nodes, 32)
-        print('ok2')
         i2 = torch.reshape(i2, (n_batches, n_points, i2.shape[-1]))
-        print('ok3')
 
         i3 = self.lin2(i2) #(n_batches, nodes, 1)
-        print('ok4')
 
         return i3, dm
 
