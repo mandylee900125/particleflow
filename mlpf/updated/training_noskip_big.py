@@ -59,22 +59,22 @@ from model_noskip_big import PFNet7
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task, alpha, title):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, alpha, task, title):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
     model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
     model_user = os.environ['USER']
 
-    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}_{}_{}'.format(
+    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_alpha_{}_{}_{}'.format(
         model_name,
         target_type,
         n_train,
         n_epochs,
         batch_size,
         lr,
-        task,
         alpha,
+        task,
         title)
     return model_fname
 
@@ -291,12 +291,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 2, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 30, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': False, 'load_epoch': 10, 'load_model': 'DataParallel_gen_ntrain_400_nepochs_100_batch_size_4_lr_0.0001_both_alpha_2e-4_noskip_nn3',
-    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': True, 'nn3': True, 'title': ''})
+    # 'load': True, 'load_epoch': 10, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_30_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn3_conv2',
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': True, 'nn3': True, 'title': ''})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -307,6 +307,8 @@ if __name__ == "__main__":
     print('Constructing data loaders..')
     train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, batch_size=args.batch_size)
     test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
+    print('test_loader', len(test_loader))
+    print('train_loader', len(train_loader))
 
     # element parameters
     input_dim = 12
@@ -377,9 +379,9 @@ if __name__ == "__main__":
             args.title=args.title+'_conv2'
 
         if args.classification_only:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf", args.alpha, rgs.title)
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, args.alpha, "clf", args.title)
         else:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both", args.alpha, args.title)
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size,  args.alpha, "both", args.title)
 
         outpath = osp.join(args.outpath, model_fname)
         if osp.isdir(outpath):

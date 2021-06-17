@@ -17,3 +17,5 @@ test_tmp_delphes/
 prp
 *.pyc
 *.pyo
+
+mlpf/updated/LRP/pid*

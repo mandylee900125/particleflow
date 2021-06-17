@@ -179,6 +179,8 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
 
     figure = plot_regression(ch_true, ch_pred, "charge", np.linspace(-2, 2, 100), target, fname = outpath+'charge_regression')
 
+    figure = plot_distributions(ch_true, ch_pred, "charge", np.linspace(0, 5, 100), target, fname = outpath+'charge_distribution')
+
     figure = plot_regression(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'pt_regression')
 
     figure = plot_distributions(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'pt_distribution')

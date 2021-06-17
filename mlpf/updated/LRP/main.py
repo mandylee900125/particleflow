@@ -184,9 +184,6 @@ if __name__ == "__main__":
             if (type(module)==nn.Linear) or (type(module)==nn.LeakyReLU):
                 hooks[name] = module.register_forward_hook(get_activation("." + name))
 
-        c0, c1, c2, c3, c4, c5 = [0]*12, [0]*12, [0]*12, [0]*12, [0]*12, [0]*12
-        c0t, c1t, c2t, c3t, c4t, c5t = 0, 0, 0, 0 ,0 ,0
-
         for i, batch in enumerate(train_loader):
             t0 = time.time()
 
@@ -210,7 +207,10 @@ if __name__ == "__main__":
                                                 "edge_index":edge_index, "edge_weight":edge_weight, "after_message":after_message, "before_message":before_message}
 
             model.set_dest(to_explain["A"])
-            results.append(explainer.explain(to_explain,save=False,return_result=True, signal=signal))
+
+            R, big_list = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
+
+            results.append(R)
 
             if i==0:
                 print('LRP layers are:', to_explain['A'].keys())
@@ -222,163 +222,81 @@ if __name__ == "__main__":
                 res = torch.cat((res,torch.abs(results[i][0])), dim=0)
 
             # ------------------------------------
-            batch['edge_index']=edge_index
-            batch['edge_weight']=edge_weight
+            cand_ids = cand_ids_one_hot.argmax(axis=1)
 
-            batch['type']=res[:,0]
+            list0, list1, list2, list3, list4, list5 = [], [], [], [], [], []
 
-            c0t = c0t+ (torch.argmax(cand_ids_one_hot, axis=1)==0).sum().item()    # use batch.ycand_id instead of cand_ids_one_hot if you want to get the true classes
-            c1t = c1t+ (torch.argmax(cand_ids_one_hot, axis=1)==1).sum().item()
-            c2t = c2t+ (torch.argmax(cand_ids_one_hot, axis=1)==2).sum().item()
-            c3t = c3t+ (torch.argmax(cand_ids_one_hot, axis=1)==3).sum().item()
-            c4t = c4t+ (torch.argmax(cand_ids_one_hot, axis=1)==4).sum().item()
-            c5t = c5t+ (torch.argmax(cand_ids_one_hot, axis=1)==5).sum().item()
+            for i,id in enumerate(cand_ids):
+                R_cat_feat = torch.cat([big_list[i], X.x], dim=1)
+                if id==0:
+                    list0.append(R_cat_feat)
+                if id==1:
+                    list1.append(R_cat_feat)
+                if id==2:
+                    list2.append(R_cat_feat)
+                if id==3:
+                    list3.append(R_cat_feat)
+                if id==4:
+                    list4.append(R_cat_feat)
+                if id==5:
+                    list5.append(R_cat_feat)
 
-            for index in range(12):
-                batch['top_50_index']=torch.topk(res[:,index], 2500)[1]
-                color = cand_ids_one_hot.argmax(axis=1)[batch['top_50_index']]
+            list=[list0,list1,list2,list3,list4,list5]
 
-                c0[index] = c0[index]+ (color==0).sum().item()
-                c1[index] = c1[index]+ (color==1).sum().item()
-                c2[index] = c2[index]+ (color==2).sum().item()
-                c3[index] = c3[index]+ (color==3).sum().item()
-                c4[index] = c4[index]+ (color==4).sum().item()
-                c5[index] = c5[index]+ (color==5).sum().item()
+            for pid in range(6):
+                print('pid',pid)
+                for j in range(len(list[pid])): # draw 5 figures of each output
+                    # to keep non-zero rows
+                    non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
+                    harvest=list[pid][j][non_empty_mask,:]
 
+                    def make_list(t):
+                        l=[]
+                        for elem in t:
+                            if elem==1:
+                                l.append('cluster')
+                            if elem==2:
+                                l.append('track')
+                        return l
 
-            if i==20:
-                break
+                    node_types = make_list(harvest[:,12])
 
-            ##### to pick the most relevant 50 nodes:
-            if False:
-                batch['edge_index']=edge_index
-                batch['edge_weight']=edge_weight
-                batch.num_nodes=500
+                    features = ["type", " pt", "eta",
+                               "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
 
-                batch['top_50_values']=torch.topk(res[:,3], 500)[0]
-                batch['top_50_index']=torch.topk(res[:,3], 500)[1]
+                    fig, ax = plt.subplots()
+                    fig.tight_layout()
+                    if pid==0:
+                        ax.set_title("Heatmap for a null")
+                    if pid==1:
+                        ax.set_title("Heatmap for a charged hadron")
+                    if pid==2:
+                        ax.set_title("Heatmap for a neutral hadron")
+                    if pid==3:
+                        ax.set_title("Heatmap for a photon")
+                    if pid==4:
+                        ax.set_title("Heatmap for a electron")
+                    if pid==5:
+                        ax.set_title("Heatmap for a muon")
+                    ax.set_xticks(np.arange(len(features)))
+                    ax.set_yticks(np.arange(len(node_types)))
+                    for col in range(len(features)):
+                        for row in range(len(node_types)):
+                            text = ax.text(col, row, round(harvest[row,12+col].item(),2),
+                                           ha="center", va="center", color="w")
+                    # ... and label them with the respective list entries
+                    ax.set_xticklabels(features)
+                    ax.set_yticklabels(node_types)
+                    plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+                    plt.colorbar()
+                    fig.set_size_inches(11, 16)
+                    plt.savefig("pid"+str(pid)+"/sample"+str(j)+".jpg")
+                    plt.close(fig)
 
-                indices = torch.topk(res[:,3], 500)[1]
+                    if j==10:
+                        break
 
-                list1=[]
-                list2=[]
-                c1=0
-                c2=0
-                for index in indices:
-                    for i in range(len(edge_index[0])):
-                        if edge_index[0][i]==index:
-                            if edge_index[1][i] in indices:
-                                list1.append(index)
-                                list2.append(edge_index[1][i])
-
-                new_edge_index = torch.stack((torch.tensor(list1),torch.tensor(list2)))
-
-                unique = torch.unique_consecutive(new_edge_index[0])
-
-                l1=[]
-                l2=[0]*new_edge_index[0].shape[0]
-                s=0
-                c=-1
-                for elem in new_edge_index[0]:
-                    if elem!=s:
-                        c=c+1
-                        s=elem
-                    l1.append(c)
-
-                for i,elem2 in enumerate(new_edge_index[1]):
-                    for j,elem in enumerate(new_edge_index[0]):
-                        if elem2==elem:
-                            l2[i]=l1[j]
-
-                batch['edge_index'] = torch.stack((torch.tensor(l1),torch.tensor(l2)))
-
-                # to label the nodes by their class
-                color = cand_ids_one_hot.argmax(axis=1)[batch['top_50_index']]
-                print('color', color)
-                G_type_50 = to_networkx(batch, node_attrs=['top_50_values'], edge_attrs=None, to_undirected=True, remove_self_loops=False)
-                nx.draw(G_type_50, font_weight='bold', node_color=color)
-                plt.savefig("eta_505.png")
-                print()
-
-
-            # G_type = to_networkx(batch, node_attrs=['type'], edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
-            # # nx.draw(G_type)
-            # # plt.savefig("type.png")
-            # pos=nx.spring_layout(G_type)   #G is my graph
-            # nx.draw(G_type,pos,node_color='#A0CBE2',edge_color='#BB0000',width=2,edge_cmap=plt.cm.Blues,with_labels=True)
-            # plt.savefig("type.png", dpi=500, facecolor='w', edgecolor='w',orientation='portrait', papertype=None, format=None,transparent=False, bbox_inches=None, pad_inches=0.1)
-            # print('finished 1st graph..')
-
-            # batch['pt']=res[:,1]
-            # G_pt = to_networkx(batch, node_attrs=['pt'], edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
-            # nx.draw(G_pt)
-            # plt.savefig("pt.png", dpi=1000)
-            # print('finished 2nd graph..')
-
-            # batch['eta']=res[:,2]
-            # G_eta = to_networkx(batch, node_attrs=['eta'], edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
-            # nx.draw(G_eta)
-            # plt.savefig("eta.png")
-        print('c0t is', c0t)
-        print('c1t is', c1t)
-        print('c2t is', c2t)
-        print('c3t is', c3t)
-        print('c4t is', c4t)
-        print('c5t is', c5t)
-
-        print('c0 is ', c0)
-        print('c1 is ', c1)
-        print('c2 is ', c2)
-        print('c3 is ', c3)
-        print('c4 is ', c4)
-        print('c5 is ', c5)
-
-        print('c0 as % is ', [int(round((i * 100/c0t),0)) for i in c0])
-        print('c1 as % is ', [int(round((i * 100/c1t),0)) for i in c1])
-        print('c2 as % is ', [int(round((i * 100/c2t),0)) for i in c2])
-        print('c3 as % is ', [int(round((i * 100/c3t),0)) for i in c3])
-        print('c4 as % is ', [int(round((i * 100/c4t),0)) for i in c4])
-        print('c5 as % is ', [int(round((i * 100/c5t),0)) for i in c5])
-
-
-        # names = ['None', 'charged_hadron', 'neutral_hadron', 'photon', 'electron', 'muon']
-        # titles = ['type', 'Et/pt', 'eta', 'sin phi', 'cos phi', 'E/P', 'Eem/eta_outer', 'Ehad/sin phi_outer', '0/cos phi_outer', '0/charge', '0/is_gen_muon', '0/is_gen_electron']
-        #
-        # data = [titles] + list(zip(names, weights, costs, unit_costs))
-        table = [['PID | feature', 'type', 'Et/pt', 'eta', 'sin phi', 'cos phi', 'E/P', 'Eem/eta_outer', 'Ehad/sin phi_outer', '0/cos phi_outer', '0/charge', '0/is_gen_muon', '0/is_gen_electron'],
-        ['None']+c0,
-        ['charged_hadron']+c1,
-        ['neutral_hadron']+c2,
-        ['photon']+c3,
-        ['electron']+c4,
-        ['muon']+c5]
-
-        print(tabulate(table))
-
-
-        table = [['PID | feature', 'type', 'Et/pt', 'eta', 'sin phi', 'cos phi', 'E/P', 'Eem/eta_outer', 'Ehad/sin phi_outer', '0/cos phi_outer', '0/charge', '0/is_gen_muon', '0/is_gen_electron'],
-        ['None']+[int(round((i * 100/c0t),0)) for i in c0],
-        ['charged_hadron']+[int(round((i * 100/c1t),0)) for i in c1],
-        ['neutral_hadron']+[int(round((i * 100/c2t),0)) for i in c2],
-        ['photon']+[int(round((i * 100/c3t),0)) for i in c3],
-        ['electron']+[int(round((i * 100/c4t),0)) for i in c4],
-        ['muon']+[int(round((i * 100/c5t),0)) for i in c5]]
-
-        print(tabulate(table))
-
-        # fig = plt.figure(figsize=(5,5))
-        # # print('homy', results[i][0][:,0].detach().numpy().shape)
-        # plt.hist(res[:,0].detach().numpy(), histtype="step", label="type label (cluster/track)")
-        # plt.hist(res[:,1].detach().numpy(), histtype="step", label="pt")
-        # plt.hist(res[:,2].detach().numpy(), histtype="step", label="eta")
-        # plt.hist(res[:,5].detach().numpy(), histtype="step", label="energy")
-        # plt.xlabel('relevance score')
-        # plt.legend(loc="best", frameon=False)
-        # plt.xlim(0,1e-3)
-        # plt.yscale('log')
-        # plt.savefig("mygraph.png")
-        # plt.close(fig)
-
+            break
 
     # evaluate the model
     if args.evaluate:
@@ -396,68 +314,48 @@ if __name__ == "__main__":
 #     a = pickle.load(f)
 
 
-#
-# #
-# import numpy as np
-# import torch
-# a = torch.tensor([[4,3], [2,1], [3,5], [3,4], [2.1,2]])
-# b = a[:,0]
-#
-# print(b)
-#
-# import matplotlib.pyplot as plt
-# rng = np.random.RandomState(10)  # deterministic random data
-# a = np.hstack((rng.normal(size=1000),
-#                rng.normal(loc=5, scale=2, size=1000)))
-# _ = plt.hist(b, bins='auto')  # arguments are passed to np.histogram
-# plt.title("Histogram with 'auto' bins")
-# plt.savefig("mygraph.png")
-#
-# np.histogram(b)
-#
-# res.shape
-#
-# fig = plt.figure(figsize=(5,5))
-# # print('homy', results[i][0][:,0].detach().numpy().shape)
-# plt.hist(res[:,0].detach().numpy(), histtype="step", label="type label (cluster/track)")
-# plt.hist(res[:,1].detach().numpy(), histtype="step", label="pt")
-# plt.hist(res[:,2].detach().numpy(), histtype="step", label="eta")
-# plt.xlabel('relevance score')
-# plt.legend(loc="best", frameon=False)
-# # plt.xlim(0,1e-3)
-# plt.yscale('log')
-# plt.savefig("mygraph.png")
-# plt.close(fig)
 
-# #
-# color
-# #
-# #
-# # batch.ycand_id
+# for x in range(1):
+#     print('x',x)
+#     for j in range(1): # draw 5 figures of each output
+#         # to keep non-zero rows
+#         non_empty_mask = list[x][j][:,:12].abs().sum(dim=1).bool()
+#         harvest=list[x][j][non_empty_mask,:]
 #
-# (torch.argmax(batch.ycand_id, axis=1)==0).sum()
-# (torch.argmax(batch.ycand_id, axis=1)==1).sum()
-# (torch.argmax(batch.ycand_id, axis=1)==2).sum()
-# (torch.argmax(batch.ycand_id, axis=1)==3).sum()
-# (torch.argmax(batch.ycand_id, axis=1)==4).sum()
-# (torch.argmax(batch.ycand_id, axis=1)==5).sum()
+#         # node_types = [i for i in range(harvest.shape[0])]
 #
-# res[:,2]
-# res[:,1]
-# batch['top_50_index']=torch.topk(res[:,10], 4000)[1]
-# color = cand_ids_one_hot.argmax(axis=1)[batch['top_50_index']]
+#         def make_list(t):
+#             l=[]
+#             for elem in t:
+#                 if elem==1:
+#                     l.append('cluster')
+#                 if elem==2:
+#                     l.append('track')
+#             return l
 #
-# color
-# color[(color!=1)]
+#         node_types = make_list(harvest[:,12])
 #
-# (color[(color!=1)]==3).sum()
+#         features = ["type", " pt", "eta",
+#                    "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
 #
-# (color==1).sum()
+#         fig, ax = plt.subplots()
+#         fig.tight_layout()
+#         if x==0:
+#             ax.set_title("Heatmap for a muon")
+#         ax.set_xticks(np.arange(len(features)))
+#         ax.set_yticks(np.arange(len(node_types)))
+#         for i in range(len(features)):
+#             for j in range(len(node_types)):
+#                 text = ax.text(i, j, round(harvest[j,12+i].item(),2),
+#                                ha="center", va="center", color="w")
+#         # ... and label them with the respective list entries
+#         ax.set_xticklabels(features)
+#         ax.set_yticklabels(node_types)
+#         plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+#         plt.colorbar()
+#         fig.set_size_inches(11, 16)
+#         plt.savefig("pid"+str(x)+"/sample"+str(j)+".jpg")
+#         plt.close(fig)
 #
-# batch['top_50_index']=torch.topk(res[:,0], 2800)[1]
-# color = cand_ids_one_hot.argmax(axis=1)[batch['top_50_index']]
-#
-# color
-# color[(color!=1)]
-#
-# cand_ids_one_hot.argmax(axis=1)[]
+#         if j==10:
+#             break
