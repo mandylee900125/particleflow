@@ -85,6 +85,19 @@ def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_si
         title)
     return model_fname
 
+def map_classid_to_classname(id):
+    if id==0:
+        return 'null'
+    if id==1:
+        return 'charged hadron'
+    if id==2:
+        return 'neutral hadron'
+    if id==3:
+        return 'photon'
+    if id==4:
+        return 'electron'
+    if id==5:
+        return 'muon'
 
 if __name__ == "__main__":
 
@@ -212,89 +225,101 @@ if __name__ == "__main__":
 
             results.append(R)
 
-            if i==0:
-                print('LRP layers are:', to_explain['A'].keys())
-                print(results[i][0])         # 0 indicates the first layer (i.e. relevance scores of the input)
-
-            if True:
-                res = torch.abs(results[i][0])
-            else:
-                res = torch.cat((res,torch.abs(results[i][0])), dim=0)
+            # if i==0:
+            #     print('LRP layers are:', to_explain['A'].keys())
+            #     print(results[i][0])         # 0 indicates the first layer (i.e. relevance scores of the input)
+            #
+            # if True:
+            #     res = torch.abs(results[i][0])
+            # else:
+            #     res = torch.cat((res,torch.abs(results[i][0])), dim=0)
 
             # ------------------------------------
             cand_ids = cand_ids_one_hot.argmax(axis=1)
+            target_ids = target_ids_one_hot.argmax(axis=1)
 
-            list0, list1, list2, list3, list4, list5 = [], [], [], [], [], []
+            for classs in range(6):
+                list0, list1, list2, list3, list4, list5 = [], [], [], [], [], []
+                dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
 
-            for i,id in enumerate(cand_ids):
-                R_cat_feat = torch.cat([big_list[i], X.x], dim=1)
-                if id==0:
-                    list0.append(R_cat_feat)
-                if id==1:
-                    list1.append(R_cat_feat)
-                if id==2:
-                    list2.append(R_cat_feat)
-                if id==3:
-                    list3.append(R_cat_feat)
-                if id==4:
-                    list4.append(R_cat_feat)
-                if id==5:
-                    list5.append(R_cat_feat)
+                for i,id in enumerate(target_ids):
+                    R_cat_feat_cat_pred = torch.cat([big_list[classs][i], X.x, cand_ids_one_hot, torch.arange(start=0, end=X.x.shape[0], step=1, dtype=int).reshape(-1,1)], dim=1)
+                    if id==0:
+                        list0.append(R_cat_feat_cat_pred)
+                        dist0.append(i)
+                    if id==1:
+                        list1.append(R_cat_feat_cat_pred)
+                        dist1.append(i)
+                    if id==2:
+                        list2.append(R_cat_feat_cat_pred)
+                        dist2.append(i)
+                    if id==3:
+                        list3.append(R_cat_feat_cat_pred)
+                        dist3.append(i)
+                    if id==4:
+                        list4.append(R_cat_feat_cat_pred)
+                        dist4.append(i)
+                    if id==5:
+                        list5.append(R_cat_feat_cat_pred)
+                        dist5.append(i)
 
-            list=[list0,list1,list2,list3,list4,list5]
+                list=[list0,list1,list2,list3,list4,list5]
+                dist=[dist0,dist1,dist2,dist3,dist4,dist5]
 
-            for pid in range(6):
-                print('pid',pid)
-                for j in range(len(list[pid])): # draw 5 figures of each output
-                    # to keep non-zero rows
-                    non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
-                    harvest=list[pid][j][non_empty_mask,:]
+                for pid in range(5):
+                    print('pid', pid)
+                    for j in range(len(list[pid])): # iterating over the nodes in a graph
+                        # to keep non-zero rows
+                        non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
+                        harvest=list[pid][j][non_empty_mask,:]
+                        pos=dist[pid][j]
 
-                    def make_list(t):
-                        l=[]
-                        for elem in t:
-                            if elem==1:
-                                l.append('cluster')
-                            if elem==2:
-                                l.append('track')
-                        return l
+                        def make_list(t):
+                            l=[]
+                            for elem in t:
+                                if elem==1:
+                                    l.append('cluster')
+                                if elem==2:
+                                    l.append('track')
+                            return l
 
-                    node_types = make_list(harvest[:,12])
+                        node_types = make_list(harvest[:,12])
 
-                    features = ["type", " pt", "eta",
-                               "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
+                        features = ["type", " pt", "eta",
+                                   "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
 
-                    fig, ax = plt.subplots()
-                    fig.tight_layout()
-                    if pid==0:
-                        ax.set_title("Heatmap for a null")
-                    if pid==1:
-                        ax.set_title("Heatmap for a charged hadron")
-                    if pid==2:
-                        ax.set_title("Heatmap for a neutral hadron")
-                    if pid==3:
-                        ax.set_title("Heatmap for a photon")
-                    if pid==4:
-                        ax.set_title("Heatmap for a electron")
-                    if pid==5:
-                        ax.set_title("Heatmap for a muon")
-                    ax.set_xticks(np.arange(len(features)))
-                    ax.set_yticks(np.arange(len(node_types)))
-                    for col in range(len(features)):
-                        for row in range(len(node_types)):
-                            text = ax.text(col, row, round(harvest[row,12+col].item(),2),
-                                           ha="center", va="center", color="w")
-                    # ... and label them with the respective list entries
-                    ax.set_xticklabels(features)
-                    ax.set_yticklabels(node_types)
-                    plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
-                    plt.colorbar()
-                    fig.set_size_inches(11, 16)
-                    plt.savefig("pid"+str(pid)+"/sample"+str(j)+".jpg")
-                    plt.close(fig)
+                        fig, ax = plt.subplots()
+                        fig.tight_layout()
+                        if pid==0:
+                            ax.set_title('Heatmap for the "'+map_classid_to_classname(classs)+'" prediction of a true null')
+                        if pid==1:
+                            ax.set_title('Heatmap for the "'+map_classid_to_classname(classs)+'" prediction of a true charged hadron')
+                        if pid==2:
+                            ax.set_title('Heatmap for the "'+map_classid_to_classname(classs)+'" prediction of a true neutral hadron')
+                        if pid==3:
+                            ax.set_title('Heatmap for the "'+map_classid_to_classname(classs)+'" prediction of a true photon')
+                        if pid==4:
+                            ax.set_title('Heatmap for the "'+map_classid_to_classname(classs)+'" prediction of a true electron')
+                        if pid==5:
+                            ax.set_title('Heatmap for the "'+map_classid_to_classname(classs)+'" prediction of a true muon')
+                        ax.set_xticks(np.arange(len(features)))
+                        ax.set_yticks(np.arange(len(node_types)))
+                        for col in range(len(features)):
+                            for row in range(len(node_types)):
+                                text = ax.text(col, row, round(harvest[row,12+col].item(),2),
+                                               ha="center", va="center", color="w")
+                        # ... and label them with the respective list entries
+                        ax.set_xticklabels(features)
+                        ax.set_yticklabels(node_types)
+                        plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R=[round(num,2) for num in harvest[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
+                        plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+                        plt.colorbar()
+                        fig.set_size_inches(11, 16)
+                        plt.savefig("class"+str(classs)+"/pid"+str(pid)+"/sample"+str(j)+".jpg")
+                        plt.close(fig)
 
-                    if j==10:
-                        break
+                        if j==3:
+                            break
 
             break
 
@@ -313,49 +338,62 @@ if __name__ == "__main__":
 # with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_normed_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
 #     a = pickle.load(f)
 
-
-
-# for x in range(1):
-#     print('x',x)
-#     for j in range(1): # draw 5 figures of each output
-#         # to keep non-zero rows
-#         non_empty_mask = list[x][j][:,:12].abs().sum(dim=1).bool()
-#         harvest=list[x][j][non_empty_mask,:]
 #
-#         # node_types = [i for i in range(harvest.shape[0])]
+# R_cat_feat_cat_pred.shape
+# disstt
+# harvest[:,30]
+# (harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()
 #
-#         def make_list(t):
-#             l=[]
-#             for elem in t:
-#                 if elem==1:
-#                     l.append('cluster')
-#                 if elem==2:
-#                     l.append('track')
-#             return l
 #
-#         node_types = make_list(harvest[:,12])
 #
-#         features = ["type", " pt", "eta",
-#                    "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
+#         for j in range(len(list[pid])): # draw 5 figures of each output
+#             # to keep non-zero rows
+#             # one_hot=
+#             non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
+#             harvest=list[pid][j][non_empty_mask,:]
+#             pos=dist[pid][j]
+#             R = R_cat_feat_cat_pred[non_empty_mask,:]
 #
-#         fig, ax = plt.subplots()
-#         fig.tight_layout()
-#         if x==0:
-#             ax.set_title("Heatmap for a muon")
-#         ax.set_xticks(np.arange(len(features)))
-#         ax.set_yticks(np.arange(len(node_types)))
-#         for i in range(len(features)):
-#             for j in range(len(node_types)):
-#                 text = ax.text(i, j, round(harvest[j,12+i].item(),2),
-#                                ha="center", va="center", color="w")
-#         # ... and label them with the respective list entries
-#         ax.set_xticklabels(features)
-#         ax.set_yticklabels(node_types)
-#         plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
-#         plt.colorbar()
-#         fig.set_size_inches(11, 16)
-#         plt.savefig("pid"+str(x)+"/sample"+str(j)+".jpg")
-#         plt.close(fig)
+#             def make_list(t):
+#                 l=[]
+#                 for elem in t:
+#                     if elem==1:
+#                         l.append('cluster')
+#                     if elem==2:
+#                         l.append('track')
+#                 return l
 #
-#         if j==10:
-#             break
+#             node_types = make_list(harvest[:,12])
+#
+#             features = ["type", " pt", "eta",
+#                        "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
+#
+#             fig, ax = plt.subplots()
+#             fig.tight_layout()
+#             if pid==0:
+#                 ax.set_title("Heatmap for a null classified as a " + map_classid_to_classname(classs))
+#             if pid==1:
+#                 ax.set_title("Heatmap for a charged hadron classified as a " + map_classid_to_classname(classs))
+#             if pid==2:
+#                 ax.set_title("Heatmap for a neutral hadron classified as a " + map_classid_to_classname(classs))
+#             if pid==3:
+#                 ax.set_title("Heatmap for a photon classified as a " + map_classid_to_classname(classs))
+#             if pid==4:
+#                 ax.set_title("Heatmap for a electron classified as a " + map_classid_to_classname(classs))
+#             if pid==5:
+#                 ax.set_title("Heatmap for a muon classified as a " + map_classid_to_classname(classs))
+#             ax.set_xticks(np.arange(len(features)))
+#             ax.set_yticks(np.arange(len(node_types)))
+#             for col in range(len(features)):
+#                 for row in range(len(node_types)):
+#                     text = ax.text(col, row, round(harvest[row,12+col].item(),2),
+#                                    ha="center", va="center", color="w")
+#             # ... and label them with the respective list entries
+#             ax.set_xticklabels(features)
+#             ax.set_yticklabels(node_types)
+#             plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R_cat_feat_cat_pred=[round(num,2) for num in R[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
+#             plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+#             plt.colorbar()
+#             fig.set_size_inches(11, 16)
+#             plt.savefig("class"+str(classs)+"/pid"+str(pid)+"/sample"+str(j)+".jpg")
+#             plt.close(fig)

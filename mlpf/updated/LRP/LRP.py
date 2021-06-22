@@ -36,48 +36,50 @@ class LRP:
     """
 
     @staticmethod
-    def eps_rule(layer,input,R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU, message_passing, transpose):
+    def eps_rule(layer,input,R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU):
+        print('l1', layer)
+
         EPSILON=1e-9
         a=copy_tensor(input)
         a.retain_grad()
-        print('l1', layer)
         z = layer.forward(a)
 
         if LeakyReLU:
             w = torch.eye(a.shape[1])
-
-        elif message_passing:
-
-            edge_index_detached=edge_index.detach()
-            edge_weight_detached=edge_weight.detach()
-
-            # need to stack/cat to make the Adjacency matrix symmetric (because this is an undirected graph but scipy doesn't know that)
-            # TODO: make it mean not sum.. right now w corrsponds to weighted sum of nodes.. i have to divide w by a scale factor
-            edge_indices=torch.stack([torch.cat((edge_index_detached[0], edge_index_detached[1]), axis=0),torch.cat((edge_index_detached[1], edge_index_detached[0]), axis=0)])
-            edge_weights = torch.cat([edge_weight_detached,edge_weight_detached])
-
-            w = torch.from_numpy(to_scipy_sparse_matrix(edge_indices,edge_weights).toarray())
-            w = w - 0.5*torch.diag(torch.diag(w))    # to avoid double counting when i stacked the edge indices
-
-            z = after_message.transpose(0,1)
-            a = before_message.transpose(0,1)
-            R = R.transpose(0,1)
-
         else:
             w = layer.weight
 
-        if transpose:
-            R = R.transpose(0,1)
+        if 'in_features=256, out_features=6' in str(layer): # for the output layer
+            T, W, r = [], [], []
 
-        I = torch.ones_like(R)
+            for i in range(6):
+                T.append(R[:,i].reshape(-1,1))
+                W.append(w[i,:].reshape(1,-1))
 
-        Numerator=(a*torch.matmul(R,w))
-        Denominator=(a*torch.matmul(I,w)).sum(axis=1)
+                I = torch.ones_like(R[:,i]).reshape(-1,1)
 
-        Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
+                Numerator=(a*torch.matmul(T[i],W[i]))
+                Denominator=(a*torch.matmul(I,W[i])).sum(axis=1)
 
-        R = Numerator / (Denominator+EPSILON*torch.sign(Denominator))
-        return R
+                Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
+
+                r.append(Numerator / (Denominator+EPSILON*torch.sign(Denominator)))
+
+            return r
+
+        else:
+
+            for i in range(6):
+                I = torch.ones_like(R[i])
+
+                Numerator=(a*torch.matmul(R[i],w))
+                Denominator=(a*torch.matmul(I,w)).sum(axis=1)
+
+                Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
+
+                R[i]=(Numerator / (Denominator+EPSILON*torch.sign(Denominator)))
+
+            return R
 
     @staticmethod
     def z_rule(layer,input,R, edge_index, edge_weight, flag):
@@ -96,37 +98,39 @@ class LRP:
         return frac*R
 
     @staticmethod
-    def gravnet_rule(layer,input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU, message_passing, transpose):
+    def gravnet_rule(layer,input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU):
 
         print('l2', layer)
+        BIG_LIST=[]
+        for i in range(6):
+            big_list=[]
+            c=0
 
-        big_list=[]
-        c=0
+            b=Data()
+            b['edge_index']=edge_index
+            b['num_nodes']=edge_index[0].shape[0]
+            b['edge_weight']=edge_weight
 
-        b=Data()
-        b['edge_index']=edge_index
-        b['num_nodes']=edge_index[0].shape[0]
-        b['edge_weight']=edge_weight
+            G = to_networkx(b, edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
 
-        G = to_networkx(b, edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
+            def nodes_connected(u, v):
+                return u in G.neighbors(v)
 
-        def nodes_connected(u, v):
-            return u in G.neighbors(v)
+            for node_i in range(R[i].shape[0]):
+                R_tensor_per_node = torch.zeros(R[i].shape[0],R[i].shape[1])
+                R_tensor_per_node[node_i]=R[i][node_i]
+                for node_j in range(R[i].shape[0]):
+                    if node_j == node_i:
+                        pass
+                    # check if neighbor
+                    if nodes_connected(node_i,node_j):
+                        R_tensor_per_node[node_j]=R[i][node_j]*G[node_i][node_j]['edge_weight']
+                        # print('node', node_j, 'is indeed neighbor')
 
-        for node_i in range(R.shape[0]):
-            R_tensor_per_node = torch.zeros(R.shape[0],R.shape[1])
-            R_tensor_per_node[node_i]=R[node_i]
-            for node_j in range(R.shape[0]):
-                if node_j == node_i:
-                    pass
-                # check if neighbor
-                if nodes_connected(node_i,node_j):
-                    R_tensor_per_node[node_j]=R[node_j]*G[node_i][node_j]['edge_weight']
-                    # print('node', node_j, 'is indeed neighbor')
+                big_list.append(R_tensor_per_node)
+            BIG_LIST.append(big_list)
 
-            big_list.append(R_tensor_per_node)
-
-        return R, big_list
+        return R, BIG_LIST
 
 
     """
@@ -154,10 +158,11 @@ class LRP:
 
         ### loop over each single layer
         big_list=[]
-        R=0
+        R=[]
         for index in range(start_index+1, 1,-1):
             R, big_list=self.explain_single_layer(R, to_explain, edge_index, edge_weight, after_message, before_message, big_list, index)
             # print(to_explain['R'][index-1].shape, to_explain['R'][index-1])
+
         return to_explain['R'], big_list[0]
 
     def explain_single_layer(self, R, to_explain, edge_index, edge_weight, after_message, before_message, big_list, index=None,name=None):
@@ -191,17 +196,17 @@ class LRP:
 
             elif 'lin_h' in name:
                 # recover R-scores from message passing
-                R=rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=False, message_passing=False, transpose=False)
+                R=rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=False)
                 to_explain["R"][index-2]=R
-                R, list =LRP.gravnet_rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=False, message_passing=True, transpose=False)
+                R, list =LRP.gravnet_rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=False)
                 to_explain["R"][index-2]=R
                 big_list.append(list)
             else:
-                R=rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=False, message_passing=False, transpose=False)
+                R=rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=False)
                 to_explain["R"][index-2]=R
 
         elif 'LeakyReLU' in str(layer):
-            R=rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=True, message_passing=False, transpose=False)
+            R=rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU=True)
             to_explain["R"][index-2]=R
 
         return R, big_list
