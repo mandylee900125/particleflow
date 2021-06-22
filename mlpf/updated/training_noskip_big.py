@@ -307,8 +307,6 @@ if __name__ == "__main__":
     print('Constructing data loaders..')
     train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, args.n_train, args.n_valid, batch_size=args.batch_size)
     test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
-    print('test_loader', len(test_loader))
-    print('train_loader', len(train_loader))
 
     # element parameters
     input_dim = 12
