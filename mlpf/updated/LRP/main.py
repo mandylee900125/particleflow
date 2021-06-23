@@ -266,7 +266,7 @@ if __name__ == "__main__":
                 list=[list0,list1,list2,list3,list4,list5]
                 dist=[dist0,dist1,dist2,dist3,dist4,dist5]
 
-                for pid in range(5):
+                for pid in range(6):
                     print('pid', pid)
                     for j in range(len(list[pid])): # iterating over the nodes in a graph
                         # to keep non-zero rows

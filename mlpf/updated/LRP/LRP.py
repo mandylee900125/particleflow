@@ -63,7 +63,7 @@ class LRP:
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
 
-                r.append(Numerator / (Denominator+EPSILON*torch.sign(Denominator)))
+                r.append(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
 
             return r
 
@@ -77,7 +77,7 @@ class LRP:
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
 
-                R[i]=(Numerator / (Denominator+EPSILON*torch.sign(Denominator)))
+                R[i]=(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
 
             return R
 
@@ -127,7 +127,7 @@ class LRP:
                         R_tensor_per_node[node_j]=R[i][node_j]*G[node_i][node_j]['edge_weight']
                         # print('node', node_j, 'is indeed neighbor')
 
-                big_list.append(R_tensor_per_node)
+                big_list.append(torch.abs(R_tensor_per_node))
             BIG_LIST.append(big_list)
 
         return R, BIG_LIST

@@ -53,27 +53,28 @@ from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
 from evaluate import make_plots, Evaluate
 from plot_utils import plot_confusion_matrix
-from model_DNN import PFNet7
+from model_LSH import PFNet7
 
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task, title):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
     model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
     model_user = os.environ['USER']
 
-    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}'.format(
+    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}_{}'.format(
         model_name,
         target_type,
         n_train,
         n_epochs,
         batch_size,
         lr,
-        task)
+        task,
+        title)
     return model_fname
 
 def compute_weights(target_ids_one_hot, device):
@@ -289,12 +290,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':32,
-    # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1,
-    # 'overwrite': True,
+    # args = objectview({'train': True, 'n_train': 5, 'n_valid': 1, 'n_test': 1, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'input_encoding': 12, 'encoding_dim': 256,
+    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
+    # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
     # 'load': False, 'load_epoch': 2, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_3_batch_size_2_lr_0.001_clf',
-    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'nn3': False})
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': False, 'conv2': True, 'nn3': True, 'title': ''})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -320,8 +321,18 @@ if __name__ == "__main__":
     model_class = model_classes[args.model]
     model_kwargs = {'input_dim': input_dim,
                     'hidden_dim': args.hidden_dim,
+                    'input_encoding': args.input_encoding,
+                    'encoding_dim': args.encoding_dim,
                     'output_dim_id': output_dim_id,
-                    'output_dim_p4': output_dim_p4}
+                    'output_dim_p4': output_dim_p4,
+                    'dropout_rate': args.dropout,
+                    'space_dim': args.space_dim,
+                    'propagate_dimensions': args.propagate_dimensions,
+                    'nearest': args.nearest,
+                    'target': args.target,
+                    'nn1': args.nn1,
+                    'conv2': args.conv2,
+                    'nn3': args.nn3}
 
     if args.train:
         #instantiate the model
@@ -335,10 +346,18 @@ if __name__ == "__main__":
 
         model.to(device)
 
+        args.title=args.title+'_noskip'
+        if args.nn1:
+            args.title=args.title+'_nn1'
+        if args.nn3:
+            args.title=args.title+'_nn3'
+        if args.conv2:
+            args.title=args.title+'_conv2'
+
         if args.classification_only:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf")
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf", args.title)
         else:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both")
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both", args.title)
 
         outpath = osp.join(args.outpath, model_fname)
         if osp.isdir(outpath):
@@ -380,7 +399,20 @@ if __name__ == "__main__":
             model = model_class(**model_kwargs)
             outpath = args.outpath + args.load_model
             PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
-            model.load_state_dict(torch.load(PATH, map_location=device))
+
+            state_dict = torch.load(PATH, map_location=device)
+
+            if "DataParallel" in args.load_model:
+                state_dict = torch.load(PATH, map_location=device)
+                from collections import OrderedDict
+                new_state_dict = OrderedDict()
+                for k, v in state_dict.items():
+                    name = k[7:] # remove module.
+                    new_state_dict[name] = v
+                    # print('name is:', name)
+                state_dict=new_state_dict
+
+            model.load_state_dict(state_dict)
 
     # evaluate the model
     if args.evaluate:

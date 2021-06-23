@@ -59,20 +59,21 @@ from model import PFNet7
 np.seterr(divide='ignore', invalid='ignore')
 
 #Get a unique directory name for the model
-def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, task, title):
+def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_size, alpha, task, title):
     model_name = type(model).__name__
     model_params = sum(p.numel() for p in model.parameters())
     import hashlib
     model_cfghash = hashlib.blake2b(repr(model).encode()).hexdigest()[:10]
     model_user = os.environ['USER']
 
-    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_{}_{}'.format(
+    model_fname = '{}_{}_ntrain_{}_nepochs_{}_batch_size_{}_lr_{}_alpha_{}_{}_{}'.format(
         model_name,
         target_type,
         n_train,
         n_epochs,
         batch_size,
         lr,
+        alpha,
         task,
         title)
     return model_fname
@@ -122,10 +123,6 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
     #setup confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
-
-    # for param in model.parameters():
-    #     print(param.data)
-    #     break
 
     for i, batch in enumerate(loader):
         t0 = time.time()
@@ -290,12 +287,17 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'input_encoding': 12, 'encoding_dim': 256,
-    # 'batch_size': 2, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../test_tmp_delphes/experiments/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
+    # args = objectview({'train': False, 'n_train': 400, 'n_valid': 50, 'n_test': 50, 'n_epochs': 30, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
+    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': False, 'load_epoch': 2, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_3_batch_size_2_lr_0.001_clf',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': True, 'nn1': True, 'conv2': True, 'nn3': True, 'title':''})
+    # 'load': True, 'load_epoch': 299, 'load_model': 'DataParallel_gen_ntrain_400_nepochs_300_batch_size_5_lr_0.0001_both_0.002_deep_noskip_nn3_conv2',
+    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': True, 'nn3': True, 'title': ''})
+
+    if args.train:
+        print('training,,,,,')
+    else:
+        print('loading,,,,')
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -334,7 +336,27 @@ if __name__ == "__main__":
                     'conv2': args.conv2,
                     'nn3': args.nn3}
 
-    if args.train:
+    if args.load:
+            print('Loading a previously trained model..')
+            model = model_class(**model_kwargs)
+            outpath = args.outpath + args.load_model
+            PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
+
+            state_dict = torch.load(PATH, map_location=device)
+
+            if "DataParallel" in args.load_model:   # if the model was trained using DataParallel then we do this
+                state_dict = torch.load(PATH, map_location=device)
+                from collections import OrderedDict
+                new_state_dict = OrderedDict()
+                for k, v in state_dict.items():
+                    name = k[7:] # remove module.
+                    new_state_dict[name] = v
+                    # print('name is:', name)
+                state_dict=new_state_dict
+
+            model.load_state_dict(state_dict)
+
+    elif args.train:
         #instantiate the model
         print('Instantiating a model..')
         model = model_class(**model_kwargs)
@@ -346,6 +368,8 @@ if __name__ == "__main__":
 
         model.to(device)
 
+    if args.train:
+        args.title=args.title+'_noskip'
         if args.nn1:
             args.title=args.title+'_nn1'
         if args.nn3:
@@ -354,9 +378,9 @@ if __name__ == "__main__":
             args.title=args.title+'_conv2'
 
         if args.classification_only:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "clf", args.title)
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, args.alpha, "clf", args.title)
         else:
-            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, "both", args.title)
+            model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size,  args.alpha, "both", args.title)
 
         outpath = osp.join(args.outpath, model_fname)
         if osp.isdir(outpath):
@@ -393,27 +417,11 @@ if __name__ == "__main__":
         model.train()
         train_loop()
 
-    elif args.load:
-            print('Loading a previously trained model..')
-            model = model_class(**model_kwargs)
-            outpath = args.outpath + args.load_model
-            PATH = outpath + '/epoch_' + str(args.load_epoch) + '_weights.pth'
+        # evaluate on training data.. make regression plots
+        os.makedirs(outpath+'/train_loader')
+        Evaluate(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs)
 
-            state_dict = torch.load(PATH, map_location=device)
-
-            if "DataParallel" in args.load_model:
-                state_dict = torch.load(PATH, map_location=device)
-                from collections import OrderedDict
-                new_state_dict = OrderedDict()
-                for k, v in state_dict.items():
-                    name = k[7:] # remove module.
-                    new_state_dict[name] = v
-                    # print('name is:', name)
-                state_dict=new_state_dict
-
-            model.load_state_dict(state_dict)
-            
-    # evaluate the model
+    # evaluate the model on test data
     if args.evaluate:
         if args.evaluate_on_cpu:
             device = "cpu"
@@ -422,7 +430,8 @@ if __name__ == "__main__":
         model.eval()
 
         if args.train:
-            Evaluate(model, test_loader, outpath, args.target, device, args.n_epochs)
+            os.makedirs(outpath+'/test_loader')
+            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs)
         elif args.load:
             Evaluate(model, test_loader, outpath, args.target, device, args.load_epoch)
 

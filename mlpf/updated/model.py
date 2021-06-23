@@ -22,7 +22,7 @@ from torch_geometric.nn import GraphConv
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=125, input_encoding=12, encoding_dim=32,
+        input_dim=12, hidden_dim=256, input_encoding=12, encoding_dim=125,
         output_dim_id=6,
         output_dim_p4=6,
         dropout_rate=0.0,
@@ -69,6 +69,9 @@ class PFNet7(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             self.act(),
             nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(),
+            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
             nn.Linear(hidden_dim, output_dim_id),
         )
 
@@ -76,6 +79,15 @@ class PFNet7(nn.Module):
         if self.nn3:
             self.nn3 = nn.Sequential(
                 nn.Linear(encoding_dim + output_dim_id, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
+                self.act(),
+                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(hidden_dim, hidden_dim),
                 self.act(),
                 nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
                 nn.Linear(hidden_dim, hidden_dim),
