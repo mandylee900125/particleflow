@@ -1,5 +1,6 @@
 from typing import Optional, Union
 from torch_geometric.typing import OptTensor, PairTensor, PairOptTensor
+import time
 
 import torch
 from torch import Tensor

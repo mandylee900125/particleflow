@@ -132,11 +132,21 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
         else:
             X = batch.to(device)
 
+        ## make like tensorflow model, 0-padding events to 6k elements
+        # if X.x.shape[0]<6000:
+        #     new_X = torch.cat([X.x,torch.zeros_like(X.x)[:6000-X.x.shape[0],:]])
+        #     new_ygen_id = torch.cat([X.ygen_id,torch.zeros_like(X.ygen_id)[:6000-X.x.shape[0],:]])
+        #     new_ygen_id[X.x.shape[0]:,0]=new_ygen_id[X.x.shape[0]:,0]+1
+        #
+        #     X.x = new_X
+        #     X.ygen_id=new_ygen_id
+
         # Forwardprop
-        cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4 = model(X)
+        cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, pf_ids_one_hot, pf_p4 = model(X)
 
         _, cand_ids = torch.max(cand_ids_one_hot, -1)
         _, target_ids = torch.max(target_ids_one_hot, -1)
+        _, pf_ids = torch.max(pf_ids_one_hot, -1)     # rule-based result
 
         # masking
         msk = ((cand_ids != 0) & (target_ids != 0))
@@ -287,12 +297,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 30, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 1, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0,
-    # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': True, 'load_epoch': 299, 'load_model': 'DataParallel_gen_ntrain_400_nepochs_300_batch_size_5_lr_0.0001_both_0.002_deep_noskip_nn3_conv2',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': True, 'nn3': True, 'title': ''})
+    # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.01, 'alpha': 2e-4, 'dropout': 0.3,
+    # 'space_dim': 4, 'propagate_dimensions': 22, 'nearest': 16, 'overwrite': True,
+    # 'load': True, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.01_alpha_0.0002_both__noskip_nn3_conv2',
+    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': False, 'conv2': True, 'nn3': True, 'title': ''})
 
     if args.train:
         print('training,,,,,')
@@ -409,10 +419,6 @@ if __name__ == "__main__":
 
         print(model)
         print(model_fname)
-
-        # # train the model
-        # for param in model.parameters():
-        #     param.requires_grad = True
 
         model.train()
         train_loop()

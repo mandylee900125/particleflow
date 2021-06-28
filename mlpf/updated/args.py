@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument("--patience", type=int, default=100, help="patience before early stopping")
     parser.add_argument("--hidden_dim", type=int, default=256, help="hidden dimension")
     parser.add_argument("--input_encoding", type=int, default=12, help="use an input encoding layer")
-    parser.add_argument("--encoding_dim", type=int, default=125, help="encoded element dimension")
+    parser.add_argument("--encoding_dim", type=int, default=124, help="encoded element dimension")
     parser.add_argument("--batch_size", type=int, default=1, help="Number of .pt files to load in parallel")
     parser.add_argument("--model", type=str, help="type of model to use", default="PFNet7")
     parser.add_argument("--target", type=str, choices=["cand", "gen"], help="Regress to PFCandidates or GenParticles", default="gen")

@@ -144,7 +144,10 @@ def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
 
     return fig
 
-def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
+def make_plots(true_id, true_p4, pred_id, pred_p4, pf_id, pf_p4,
+                cand_ids_list_chhadron, cand_ids_list_nhadron,
+                target_ids_list_chhadron, target_ids_list_nhadron,
+                pf_ids_list_chhadron, pf_ids_list_nhadron,target, epoch, outpath):
 
     conf_matrix_norm = sklearn.metrics.confusion_matrix(torch.max(true_id, -1)[1],
                                     np.argmax(pred_id.detach().cpu().numpy(),axis=1), labels=range(6), normalize="true")
@@ -156,6 +159,7 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
 
     _, true_id = torch.max(true_id, -1)
     _, pred_id = torch.max(pred_id, -1)
+    _, pf_id = torch.max(pf_id, -1)
 
     msk = (pred_id!=0) & (true_id!=0)
 
@@ -205,12 +209,68 @@ def make_plots(true_id, true_p4, pred_id, pred_p4, target, epoch, outpath):
 
     figure = plot_particles( outpath+'particleID2', true_id, true_p4, pred_id, pred_p4, pid=2)
 
+    # plot num_gen vs num_pred for chhadron
+    fig, ax = plt.subplots()
+    ax.scatter(cand_ids_list_chhadron, target_ids_list_chhadron, label="MLPF")
+    ax.scatter(pf_ids_list_chhadron, target_ids_list_chhadron, label="Rule-based PF")
+
+    lims = [
+        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+    ]
+
+    # now plot both limits against eachother
+    ax.plot(lims, lims, '--', alpha=0.75, zorder=0)
+    ax.set_aspect('equal')
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+
+    plt.title('Charged hadrons')
+    plt.xlabel('True')
+    plt.ylabel('Reconstructed')
+    plt.legend(loc="best", frameon=False)
+    plt.savefig(outpath + 'num_chhadron.png')
+    plt.close(fig)
+
+    # plot num_gen vs num_pred for nhadron
+    fig, ax = plt.subplots()
+    ax.scatter(cand_ids_list_nhadron, target_ids_list_nhadron, label="MLPF")
+    ax.scatter(pf_ids_list_nhadron, target_ids_list_nhadron, label="Rule-based PF")
+
+    lims = [
+        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+    ]
+
+    # now plot both limits against eachother
+    ax.plot(lims, lims, '--', alpha=0.75, zorder=0)
+    ax.set_aspect('equal')
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+
+    plt.title('Neutral hadrons')
+    plt.xlabel('True')
+    plt.ylabel('Reconstructed')
+    plt.legend(loc="best", frameon=False)
+    plt.savefig(outpath + 'num_nhadron.png')
+    plt.close(fig)
+
+
 
 def Evaluate(model, test_loader, path, target, device, epoch):
-    pred_id_all = []
+    pred_ids_all = []
     pred_p4_all = []
     target_ids_all = []
     target_p4_all = []
+    pf_ids_all = []
+    pf_p4_all = []
+
+    cand_ids_list_chhadron = []
+    cand_ids_list_nhadron = []
+    target_ids_list_chhadron  = []
+    target_ids_list_nhadron = []
+    pf_ids_list_chhadron = []
+    pf_ids_list_nhadron = []
 
     for batch in test_loader:
         if multi_gpu:
@@ -218,25 +278,51 @@ def Evaluate(model, test_loader, path, target, device, epoch):
         else:
             X = batch.to(device)
 
-        pred_id, pred_p4, target_ids, target_p4 = model(X)
+        cand_ids_one_hot, pred_p4, target_ids_one_hot, target_p4, pf_ids_one_hot, pf_p4 = model(X)
 
-        pred_id_all.append(pred_id.detach().cpu())
+        # to make "num_gen vs num_pred" plots
+        _, cand_ids = torch.max(cand_ids_one_hot, -1)
+        _, target_ids = torch.max(target_ids_one_hot, -1)
+        _, pf_ids = torch.max(pf_ids_one_hot, -1)
+
+        cand_ids_list_chhadron.append((cand_ids==1).sum().item())
+        cand_ids_list_nhadron.append((cand_ids==2).sum().item())
+
+        target_ids_list_chhadron.append((target_ids==1).sum().item())
+        target_ids_list_nhadron.append((target_ids==2).sum().item())
+
+        pf_ids_list_chhadron.append((pf_ids==1).sum().item())
+        pf_ids_list_nhadron.append((pf_ids==2).sum().item())
+
+        # to evaluate
+        pred_ids_all.append(cand_ids_one_hot.detach().cpu())
         pred_p4_all.append(pred_p4.detach().cpu())
 
-        target_ids_all.append(target_ids.detach().cpu())
+        target_ids_all.append(target_ids_one_hot.detach().cpu())
         target_p4_all.append(target_p4.detach().cpu())
 
-    pred_id = pred_id_all[0]
+        pf_ids_all.append(pf_ids_one_hot.detach().cpu())
+        pf_p4_all.append(pf_p4.detach().cpu())
+
+    pred_ids = pred_ids_all[0]
     pred_p4 = pred_p4_all[0]
     target_ids = target_ids_all[0]
     target_p4 = target_p4_all[0]
+    pf_ids = pf_ids_all[0]
+    pf_p4 = pf_p4_all[0]
 
-    for i in range(len(pred_id_all)-1):
-        pred_id = torch.cat((pred_id,pred_id_all[i+1]))
+    for i in range(len(pred_ids_all)-1):
+        pred_ids = torch.cat((pred_ids,pred_ids_all[i+1]))
         pred_p4 = torch.cat((pred_p4,pred_p4_all[i+1]))
         target_ids = torch.cat((target_ids,target_ids_all[i+1]))
         target_p4 = torch.cat((target_p4,target_p4_all[i+1]))
+        pf_ids = torch.cat((pf_ids,pf_ids_all[i+1]))
+        pf_p4 = torch.cat((pf_p4,pf_p4_all[i+1]))
 
     print('Making plots for evaluation..')
 
-    make_plots(target_ids, target_p4, pred_id, pred_p4, target, epoch, outpath=path + '/')
+    make_plots(target_ids, target_p4, pred_ids, pred_p4, pf_ids, pf_p4,
+                cand_ids_list_chhadron, cand_ids_list_nhadron,
+                target_ids_list_chhadron, target_ids_list_nhadron,
+                pf_ids_list_chhadron, pf_ids_list_nhadron,
+                target, epoch, outpath=path + '/')

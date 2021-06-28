@@ -123,15 +123,7 @@ class PFNet7(nn.Module):
         else:
             cand_p4=torch.zeros_like(data.ycand)
 
-        if self.target=='cand':
-            return cand_ids, cand_p4, data.ycand_id, data.ycand
-
-        elif self.target=='gen':
-            return cand_ids, cand_p4, data.ygen_id, data.ygen
-
-        else:
-            print('Target type unknown..')
-            return 0
+        return cand_ids, cand_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
 # -------------------------------------------------------------------------------------
 # # uncomment to test a forward pass
