@@ -22,11 +22,11 @@ from torch_geometric.nn import GraphConv
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=256, input_encoding=12, encoding_dim=125,
+        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=126,
         output_dim_id=6,
         output_dim_p4=6,
         dropout_rate=0.0,
-        space_dim=4, propagate_dimensions=22, nearest=16,
+        space_dim=8, propagate_dimensions=22, nearest=40,
         target="gen", nn1=True, conv2=True, nn3=True):
 
         super(PFNet7, self).__init__()

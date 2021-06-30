@@ -297,12 +297,12 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 16, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 16, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
     # 'space_dim': 4, 'propagate_dimensions': 22, 'nearest': 16, 'overwrite': True,
-    # 'load': False, 'load_epoch': 9, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_10_batch_size_1_lr_0.01_alpha_0.0002_both__noskip_nn1_nn3_conv2',
-    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'conv2': True, 'nn3': True, 'title': ''})
+    # 'load': True, 'load_epoch': 9, 'load_model': 'best_PFNet7_gen_ntrain_1_nepochs_16_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn1_nn3_conv2',
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'conv2': True, 'nn3': True, 'title': ''})
 
     if args.train:
         print('training,,,,,')
@@ -333,6 +333,7 @@ if __name__ == "__main__":
     model_class = model_classes[args.model]
     model_kwargs = {'input_dim': input_dim,
                     'hidden_dim': args.hidden_dim,
+                    'hidden_dim_nn1': args.hidden_dim_nn1,
                     'input_encoding': args.input_encoding,
                     'encoding_dim': args.encoding_dim,
                     'output_dim_id': output_dim_id,
