@@ -22,10 +22,9 @@ from torch_geometric.nn import GraphConv
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=126,
+        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=64,
         output_dim_id=6,
         output_dim_p4=6,
-        dropout_rate=0.0,
         space_dim=8, propagate_dimensions=22, nearest=40,
         target="gen", nn1=True, conv2=True, nn3=True):
 
@@ -38,51 +37,42 @@ class PFNet7(nn.Module):
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
-
         self.act_tanh = torch.nn.Tanh
 
         # (1) DNN
-        if self.nn1:
-            self.nn1 = nn.Sequential(
-                nn.Linear(12, 64),
-                self.act(0.5),
-                nn.Linear(64, 64),
-                self.act(0.5),
-                nn.Linear(64, 12),
-                self.act(0.5),
-            )
-
-        # (2) CNN: Gravnet layer
-        self.conv1 = GravNetConv(12, 64, space_dimensions=8, propagate_dimensions=22, k=40)
-
-        # (3) CNN: GraphConv
-        if self.conv2:
-            self.conv2 = GraphConv(64, 64)
-
-        # (4) DNN layer: classifying PID
-        self.nn2 = nn.Sequential(
-            nn.Linear(64, 126),
+        self.nn1 = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim_nn1),
             self.act(0.5),
-            nn.Linear(126, 126),
+            nn.Linear(hidden_dim_nn1, hidden_dim_nn1),
             self.act(0.5),
-            nn.Linear(126, 126),
-            self.act(0.5),
-            nn.Linear(126, 6),
+            nn.Linear(hidden_dim_nn1, hidden_dim_nn1),
             self.act(0.5),
         )
 
+        self.nn2 = nn.Sequential(
+            nn.Linear(hidden_dim_nn1 + input_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, output_dim_id),
+        )
+
         # (5) DNN layer: regressing p4
-        if self.nn3:
-            self.nn3 = nn.Sequential(
-                nn.Linear(64 + 6 + 12, 126),
-                self.act(0.5),
-                nn.Linear(126, 126),
-                self.act(0.5),
-                nn.Linear(126, 126),
-                self.act(0.5),
-                nn.Linear(126, 6),
-                self.act(0.5),
-            )
+        self.nn3 = nn.Sequential(
+            nn.Linear(encoding_dim + output_dim_id + input_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, output_dim_p4),
+        )
 
     def forward(self, data):
 
@@ -92,17 +82,8 @@ class PFNet7(nn.Module):
         if self.nn1:
             x = self.nn1(x0)
 
-        # Gravnet step
-        x, edge_index, edge_weight = self.conv1(x)
-        # x = self.act_f(x)                 # act by nonlinearity
-
-        # GraphConv step
-        if self.conv2:
-            x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
-            # x = self.act_f(x)                 # act by nonlinearity
-
         # DNN to predict PID
-        cand_ids = self.nn2(x)
+        cand_ids = self.nn2(torch.cat([x, x0], axis=-1))
 
         # DNN to predict p4
         if self.nn3:
@@ -114,7 +95,7 @@ class PFNet7(nn.Module):
         return cand_ids, cand_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
 # -------------------------------------------------------------------------------------
-# # uncomment to test a forward pass
+## uncomment to test a forward pass
 # from graph_data_delphes import PFGraphDataset
 # from data_preprocessing import data_to_loader_ttbar
 # from data_preprocessing import data_to_loader_qcd
@@ -128,8 +109,42 @@ class PFNet7(nn.Module):
 # model = PFNet7()
 #
 # for batch in train_loader:
-#     cand_ids, cand_p4, target_ids, target_p4, pf_ids, pf_p4 = model(batch)
-#     cand_ids
-#     print('Predicted PID:', cand_ids)
-#     print('Predicted p4:', cand_p4)
+#     # cand_ids, cand_p4, target_ids, target_p4, pf_id, pf_p4 = model(batch)
+#     # cand_ids
+#     print('Predicted PID:')
+#     print('Predicted p4:')
 #     break
+#
+#
+# batch.x[:,5:9]
+#
+# c=0
+# for i in range(len(batch.x)):
+#     if (batch.x[:,5][i] !=0) :
+#         if (batch.x[:,5][i]==batch.x[:,7][i]):
+#             if (batch.ygen_id[:,2][i]==1):
+#                 c=c+1
+#             else:
+#                 print(i)
+#
+#
+# c
+#
+# len(batch.x)
+#
+# len(batch.x)
+#
+#
+# batch.x[:,5][i]
+#
+#
+# batch.x[10666]
+# batch.x[10667]
+# batch.ygen_id[:,2]
+#
+#
+# batch.x[10356]
+#
+#
+#
+# batch.ygen_id[10356]

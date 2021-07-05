@@ -63,6 +63,8 @@ import networkx as nx
 from torch_geometric.utils.convert import to_networkx
 from tabulate import tabulate
 
+# NOTE: this script works by loading an already trained model
+
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -160,6 +162,7 @@ if __name__ == "__main__":
 
     state_dict = torch.load(PATH, map_location=device)
 
+    # if model was trained using DataParallel then we have to load it differently
     if "DataParallel" in args.load_model:
         state_dict = torch.load(PATH, map_location=device)
         from collections import OrderedDict
@@ -173,7 +176,7 @@ if __name__ == "__main__":
     model.load_state_dict(state_dict)
 
     if args.explain:
-        model.train()
+        model.eval()
         print(model)
 
         results = []
@@ -206,8 +209,8 @@ if __name__ == "__main__":
                 X = batch.to(device)
 
             if i==0:
-                # could be defined better
-                # I run at least one forward pass to get the activation to use them in defining the LRP layers
+                # code can be written better but i am a physicist and i have no time for this
+                # basically i run at least one forward pass to get the activations to use their shape in defining the LRP layers
                 cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, edge_index, edge_weight, after_message, before_message = model(X)
                 model=model_io(model,state_dict,dict(),activation)
                 explainer=LRP(model)
@@ -225,16 +228,6 @@ if __name__ == "__main__":
 
             results.append(R)
 
-            # if i==0:
-            #     print('LRP layers are:', to_explain['A'].keys())
-            #     print(results[i][0])         # 0 indicates the first layer (i.e. relevance scores of the input)
-            #
-            # if True:
-            #     res = torch.abs(results[i][0])
-            # else:
-            #     res = torch.cat((res,torch.abs(results[i][0])), dim=0)
-
-            # ------------------------------------
             cand_ids = cand_ids_one_hot.argmax(axis=1)
             target_ids = target_ids_one_hot.argmax(axis=1)
 
@@ -285,8 +278,12 @@ if __name__ == "__main__":
 
                         node_types = make_list(harvest[:,12])
 
-                        features = ["type", " pt", "eta",
-                                   "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
+                        ### TODO: Not the best way to do it.. I am assuming here that only charged hadrons are connected to all tracks
+                        if pid==1:
+                            features = ["type", " pt", "eta",
+                                   "sphi", "cphi", "E", "eta_out", "sphi_out", "cphi_out", "charge", "is_gen_mu", "is_gen_el"]
+                        else:
+                            features = ["type", "Et", "eta", "sphi", "cphi", "E", "Eem", "Ehad", "padding", "padding", "padding", "padding"]
 
                         fig, ax = plt.subplots()
                         fig.tight_layout()
@@ -320,6 +317,8 @@ if __name__ == "__main__":
 
                         if j==3:
                             break
+                    if pid==2:
+                         break
 
             break
 
@@ -337,63 +336,3 @@ if __name__ == "__main__":
 # import pickle
 # with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_normed_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
 #     a = pickle.load(f)
-
-#
-# R_cat_feat_cat_pred.shape
-# disstt
-# harvest[:,30]
-# (harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()
-#
-#
-#
-#         for j in range(len(list[pid])): # draw 5 figures of each output
-#             # to keep non-zero rows
-#             # one_hot=
-#             non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
-#             harvest=list[pid][j][non_empty_mask,:]
-#             pos=dist[pid][j]
-#             R = R_cat_feat_cat_pred[non_empty_mask,:]
-#
-#             def make_list(t):
-#                 l=[]
-#                 for elem in t:
-#                     if elem==1:
-#                         l.append('cluster')
-#                     if elem==2:
-#                         l.append('track')
-#                 return l
-#
-#             node_types = make_list(harvest[:,12])
-#
-#             features = ["type", " pt", "eta",
-#                        "sphi", "cphi", "E/P", "eta_outer", "sphi_outer", "cphi_outer", "charge", "is_gen_muon", "is_gen_electron"]
-#
-#             fig, ax = plt.subplots()
-#             fig.tight_layout()
-#             if pid==0:
-#                 ax.set_title("Heatmap for a null classified as a " + map_classid_to_classname(classs))
-#             if pid==1:
-#                 ax.set_title("Heatmap for a charged hadron classified as a " + map_classid_to_classname(classs))
-#             if pid==2:
-#                 ax.set_title("Heatmap for a neutral hadron classified as a " + map_classid_to_classname(classs))
-#             if pid==3:
-#                 ax.set_title("Heatmap for a photon classified as a " + map_classid_to_classname(classs))
-#             if pid==4:
-#                 ax.set_title("Heatmap for a electron classified as a " + map_classid_to_classname(classs))
-#             if pid==5:
-#                 ax.set_title("Heatmap for a muon classified as a " + map_classid_to_classname(classs))
-#             ax.set_xticks(np.arange(len(features)))
-#             ax.set_yticks(np.arange(len(node_types)))
-#             for col in range(len(features)):
-#                 for row in range(len(node_types)):
-#                     text = ax.text(col, row, round(harvest[row,12+col].item(),2),
-#                                    ha="center", va="center", color="w")
-#             # ... and label them with the respective list entries
-#             ax.set_xticklabels(features)
-#             ax.set_yticklabels(node_types)
-#             plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R_cat_feat_cat_pred=[round(num,2) for num in R[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
-#             plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
-#             plt.colorbar()
-#             fig.set_size_inches(11, 16)
-#             plt.savefig("class"+str(classs)+"/pid"+str(pid)+"/sample"+str(j)+".jpg")
-#             plt.close(fig)

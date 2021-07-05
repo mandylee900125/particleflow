@@ -53,7 +53,7 @@ from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
 from evaluate import make_plots, Evaluate
 from plot_utils import plot_confusion_matrix
-from model0_best import PFNet7
+from model_dnn import PFNet7
 
 #Ignore divide by 0 errors
 np.seterr(divide='ignore', invalid='ignore')
@@ -290,19 +290,19 @@ def train_loop():
 
 if __name__ == "__main__":
 
-    args = parse_args()
+    # args = parse_args()
 
-    # # the next part initializes some args values (to run the script not from terminal)
-    # class objectview(object):
-    #     def __init__(self, d):
-    #         self.__dict__ = d
-    #
-    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 16, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 125,
-    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
-    # 'space_dim': 4, 'propagate_dimensions': 22, 'nearest': 16, 'overwrite': True,
-    # 'load': True, 'load_epoch': 9, 'load_model': 'best_PFNet7_gen_ntrain_1_nepochs_16_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn1_nn3_conv2',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'conv2': True, 'nn3': True, 'title': ''})
+    # the next part initializes some args values (to run the script not from terminal)
+    class objectview(object):
+        def __init__(self, d):
+            self.__dict__ = d
+
+    args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 16, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
+    'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
+    'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
+    'load': False, 'load_epoch': 9, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_10_batch_size_1_lr_0.01_alpha_0.0002_both__noskip_nn1_nn3_conv2',
+    'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'conv2': False, 'nn3': True, 'title': ''})
 
     if args.train:
         print('training,,,,,')
@@ -338,7 +338,6 @@ if __name__ == "__main__":
                     'encoding_dim': args.encoding_dim,
                     'output_dim_id': output_dim_id,
                     'output_dim_p4': output_dim_p4,
-                    'dropout_rate': args.dropout,
                     'space_dim': args.space_dim,
                     'propagate_dimensions': args.propagate_dimensions,
                     'nearest': args.nearest,

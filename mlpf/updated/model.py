@@ -22,12 +22,11 @@ from torch_geometric.nn import GraphConv
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=256, input_encoding=12, encoding_dim=125,
+        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=64,
         output_dim_id=6,
         output_dim_p4=6,
-        dropout_rate=0.0,
-        space_dim=4, propagate_dimensions=22, nearest=16,
-        target="gen", nn1=True, conv2=True, nn3=True):
+        space_dim=8, propagate_dimensions=22, nearest=40,
+        target="gen", nn1=True, conv2=True, nn3=True, nn0track=True, nn0cluster=True):
 
         super(PFNet7, self).__init__()
 
@@ -35,23 +34,40 @@ class PFNet7(nn.Module):
         self.nn1 = nn1
         self.conv2 = conv2
         self.nn3 = nn3
+        self.nn0track = nn0track
+        self.nn0cluster = nn0cluster
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
+        self.act_tanh = torch.nn.Tanh
+        self.elu = nn.ELU
 
-        # dropout layer if needed anywhere
-        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        if self.nn0track:
+            self.nn0track = nn.Sequential(
+                nn.Linear(12-1, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, input_encoding-1),
+            )
+
+        if self.nn0cluster:
+            self.nn0cluster = nn.Sequential(
+                nn.Linear(8-1, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, input_encoding-1),
+            )
 
         # (1) DNN
         if self.nn1:
             self.nn1 = nn.Sequential(
-                nn.Linear(input_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, input_encoding),
+                nn.Linear(input_dim, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, input_encoding),
             )
 
         # (2) CNN: Gravnet layer
@@ -64,41 +80,51 @@ class PFNet7(nn.Module):
         # (4) DNN layer: classifying PID
         self.nn2 = nn.Sequential(
             nn.Linear(encoding_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            self.elu(),
             nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            self.elu(),
             nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            self.elu(),
             nn.Linear(hidden_dim, output_dim_id),
         )
 
         # (5) DNN layer: regressing p4
         if self.nn3:
             self.nn3 = nn.Sequential(
-                nn.Linear(encoding_dim + output_dim_id, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                nn.Linear(encoding_dim + output_dim_id + input_dim, hidden_dim),
+                self.elu(),
                 nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                self.elu(),
                 nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+                self.elu(),
+                # nn.Linear(hidden_dim, hidden_dim),
+                # self.elu(),
                 nn.Linear(hidden_dim, output_dim_p4),
             )
 
     def forward(self, data):
+        x0 = data.x
 
-        x = data.x
+        # select the tracks and clusters using the first index but then remove it to make the embedding
+        tracks = x0[:,1:][x0[:,0]==2]
+        clusters = x0[:,1:8][x0[:,0]==1]
+
+        if self.nn0track:
+            tracks = self.nn0track(tracks)
+
+        if self.nn0cluster:
+            clusters = self.nn0cluster(clusters)
+
+        tracks=torch.cat([x0[:,0][x0[:,0]==2].reshape(-1,1),tracks], axis=1)
+        clusters=torch.cat([x0[:,0][x0[:,0]==1].reshape(-1,1),clusters], axis=1)
+
+        x = torch.cat([tracks,clusters])
+
+        # embed the "type" feature
+        embedding = nn.Embedding(10, 1)
+
+        add = embedding(x[:,0].long()).reshape(-1,1)
+        x=torch.cat([add,x[:,1:]], axis=1)
 
         # Encoder/Decoder step
         if self.nn1:
@@ -111,15 +137,14 @@ class PFNet7(nn.Module):
         # GraphConv step
         if self.conv2:
             x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
-            x = self.act_f(x)                 # act by nonlinearity
 
-        # DNN to predict PID (after a dropout)
-        cand_ids = self.nn2(self.dropout(x))
+        # DNN to predict PID
+        cand_ids = self.nn2(x)
 
-        # DNN to predict p4 (after a dropout)
+        # DNN to predict p4
         if self.nn3:
-            nn3_input = torch.cat([x, cand_ids], axis=-1)
-            cand_p4 = self.nn3(self.dropout(nn3_input))
+            nn3_input = torch.cat([x, cand_ids, x0], axis=-1)
+            cand_p4 = self.nn3(nn3_input)
         else:
             cand_p4=torch.zeros_like(data.ycand)
 
@@ -140,8 +165,5 @@ class PFNet7(nn.Module):
 # model = PFNet7()
 #
 # for batch in train_loader:
-#     cand_ids, cand_p4, target_ids, target_p4 = model(batch)
-#     cand_ids
-#     print('Predicted PID:', cand_ids)
-#     print('Predicted p4:', cand_p4)
+#     cand_ids, cand_p4, target_ids, target_p4, pf_ids, pf_p4 = model(batch)
 #     break
