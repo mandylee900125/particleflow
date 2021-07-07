@@ -150,19 +150,17 @@ class PFNet7(nn.Module):
         return pred_ids, pred_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
 # # -------------------------------------------------------------------------------------
-# # uncomment to test a forward pass
-# from graph_data_delphes import PFGraphDataset
-# from data_preprocessing import data_to_loader_ttbar
-# from data_preprocessing import data_to_loader_qcd
-#
-# full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
-#
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)
-#
-# print('Input to the network:', next(iter(train_loader)))
-#
-# model = PFNet7()
-#
-# for batch in train_loader:
-#     pred_ids, pred_p4, gen_ids, gen_p4, cand_ids, cand_p4 = model(batch)
-#     break
+# uncomment to test a forward pass
+from graph_data_delphes import PFGraphDataset
+from data_preprocessing import data_to_loader_ttbar
+from data_preprocessing import data_to_loader_qcd
+
+full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
+
+train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)
+
+model = PFNet7()
+
+for batch in train_loader:
+    pred_ids, pred_p4, gen_ids, gen_p4, cand_ids, cand_p4 = model(batch)
+    break
