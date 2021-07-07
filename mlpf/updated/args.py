@@ -42,6 +42,7 @@ def parse_args():
     parser.add_argument("--regression_only", action=BoolArg, default=False, help="Check to train for regression only (no classification)")
     parser.add_argument("--nn1", action=BoolArg, default=True, help="Adds an encoder/decoder step before gravnet..")
     parser.add_argument("--nn3", action=BoolArg, default=True, help="Adds the network to regress p4..")
+    parser.add_argument("--nn4", action=BoolArg, default=True, help="Adds an extra network for the dnn model..")
     parser.add_argument("--nn0track", action=BoolArg, default=True, help="Adds an initial network that encode the tracks..")
     parser.add_argument("--nn0cluster", action=BoolArg, default=True, help="Adds an initial network that encode the clusters..")
     parser.add_argument("--title", type=str, default='', help="Appends this title to the model's name")
