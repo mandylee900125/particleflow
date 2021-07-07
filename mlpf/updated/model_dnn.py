@@ -26,13 +26,12 @@ class PFNet7(nn.Module):
         output_dim_id=6,
         output_dim_p4=6,
         space_dim=8, propagate_dimensions=22, nearest=40,
-        target="gen", nn1=True, conv2=True, nn3=True, nn4=True):
+        target="gen", nn1=True, nn3=True, nn4=True):
 
         super(PFNet7, self).__init__()
 
         self.target = target
         self.nn1 = nn1
-        self.conv2 = conv2
         self.nn3 = nn3
         self.nn4 = nn4
 
@@ -113,7 +112,7 @@ class PFNet7(nn.Module):
 # from graph_data_delphes import PFGraphDataset
 # from data_preprocessing import data_to_loader_ttbar
 # from data_preprocessing import data_to_loader_qcd
-# 
+#
 # full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
 #
 # train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)

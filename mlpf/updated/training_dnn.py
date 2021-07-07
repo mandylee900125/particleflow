@@ -341,7 +341,6 @@ if __name__ == "__main__":
                     'nearest': args.nearest,
                     'target': args.target,
                     'nn1': args.nn1,
-                    'conv2': args.conv2,
                     'nn3': args.nn3,
                     'nn4': args.nn4}
 
