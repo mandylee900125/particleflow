@@ -50,7 +50,7 @@ class PFNet7(nn.Module):
         output_dim_id=6,
         output_dim_p4=6,
         space_dim=8, propagate_dimensions=22, nearest=40,
-        target="gen", nn1=True, nn3=True, nn0track=True, nn0cluster=True, device=device):
+        target="gen", nn1=True, nn3=True, nn0track=True, nn0cluster=True):
 
         super(PFNet7, self).__init__()
 
@@ -61,7 +61,6 @@ class PFNet7(nn.Module):
         self.nn0cluster = nn0cluster
         self.embedding_dim = embedding_dim
         self.encoding_of_clusters = encoding_of_clusters
-        self.device=device
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
@@ -87,6 +86,10 @@ class PFNet7(nn.Module):
                 self.elu(),
                 nn.Linear(hidden_dim_nn1, input_encoding-1),
             )
+
+        # (0) DNN: embedding of "type"
+        if self.embedding_dim:
+            self.embedding = nn.Embedding(embedding_dim, 1)
 
         # (1) DNN: encoding/decoding of all tracks and clusters
         if self.nn1:
@@ -147,9 +150,7 @@ class PFNet7(nn.Module):
 
         if self.embedding_dim:
             # embed the "type" feature
-            embedding = nn.Embedding(self.embedding_dim, 1)
-
-            add = embedding(x0[:,0].long().to(self.device)).reshape(-1,1)
+            add = self.embedding(x0[:,0].long()).reshape(-1,1)
             x0=torch.cat([add,x0[:,1:]], axis=1)
 
         # Encoder/Decoder step
