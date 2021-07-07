@@ -41,8 +41,6 @@ if use_gpu:
 else:
     device = torch.device('cpu')
 
-print('device is: ', device)
-
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
