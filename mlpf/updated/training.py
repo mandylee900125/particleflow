@@ -1,14 +1,19 @@
 from glob import glob
 import sys, os
+sys.path.insert(1, '../../plotting/')
+sys.path.insert(1, '../../mlpf/plotting/')
+
 import os.path as osp
-import pickle, math, time, numba, tqdm
+import pickle as pkl
+import math, time, numba, tqdm
 import numpy as np
 import pandas as pd
 import sklearn
 from sklearn.metrics import accuracy_score, confusion_matrix
-import matplotlib, mplhep
+import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import mplhep as hep
 
 #Check if the GPU configuration has been provided
 import torch
@@ -44,14 +49,12 @@ from torch_geometric.nn import GravNetConv
 from torch.utils.data import random_split
 import torch_cluster
 
-sys.path.insert(1, '../../plotting/')
-sys.path.insert(1, '../../mlpf/plotting/')
 import args
 from args import parse_args
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
-from evaluate import make_plots, Evaluate
+from evaluate import Evaluate
 from plot_utils import plot_confusion_matrix
 from model import PFNet7
 
@@ -78,14 +81,16 @@ def get_model_fname(dataset, model, n_train, n_epochs, lr, target_type, batch_si
         title)
     return model_fname
 
-def compute_weights(target_ids_one_hot, device):
-    vs, cs = torch.unique(target_ids_one_hot, return_counts=True)
+def compute_weights(gen_ids_one_hot, device):
+    vs, cs = torch.unique(gen_ids_one_hot, return_counts=True)
     weights = torch.zeros(output_dim_id).to(device=device)
     for k, v in zip(vs, cs):
         weights[k] = 1.0/math.sqrt(float(v))
     return weights
 
 def make_plot_from_list(l, label, xlabel, ylabel, outpath, save_as):
+    plt.style.use(hep.style.ROOT)
+
     if not os.path.exists(outpath + '/training_plots/'):
         os.makedirs(outpath + '/training_plots/')
 
@@ -98,7 +103,7 @@ def make_plot_from_list(l, label, xlabel, ylabel, outpath, save_as):
     plt.close(fig)
 
     with open(outpath + '/training_plots/' + save_as + '.pkl', 'wb') as f:
-        pickle.dump(l, f)
+        pkl.dump(l, f)
 
 @torch.no_grad()
 def test(model, loader, epoch, alpha, target_type, device):
@@ -142,20 +147,20 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
         #     X.ygen_id=new_ygen_id
 
         # Forwardprop
-        cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, pf_ids_one_hot, pf_p4 = model(X)
+        pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
 
-        _, cand_ids = torch.max(cand_ids_one_hot, -1)
-        _, target_ids = torch.max(target_ids_one_hot, -1)
-        _, pf_ids = torch.max(pf_ids_one_hot, -1)     # rule-based result
+        _, gen_ids = torch.max(gen_ids_one_hot, -1)
+        _, pred_ids = torch.max(pred_ids_one_hot, -1)
+        _, cand_ids = torch.max(cand_ids_one_hot, -1)     # rule-based result
 
         # masking
-        msk = ((cand_ids != 0) & (target_ids != 0))
-        msk2 = ((cand_ids != 0) & (cand_ids == target_ids))
+        msk = ((pred_ids != 0) & (gen_ids != 0))
+        msk2 = ((pred_ids != 0) & (pred_ids == gen_ids))
 
         # computing loss
-        weights = compute_weights(torch.max(target_ids_one_hot,-1)[1], device)
-        l1 = torch.nn.functional.cross_entropy(cand_ids_one_hot, target_ids, weight=weights) # for classifying PID
-        l2 = alpha * torch.nn.functional.mse_loss(cand_p4[msk2], target_p4[msk2])  # for regressing p4
+        weights = compute_weights(torch.max(gen_ids_one_hot,-1)[1], device)
+        l1 = torch.nn.functional.cross_entropy(pred_ids_one_hot, gen_ids, weight=weights) # for classifying PID
+        l2 = alpha * torch.nn.functional.mse_loss(pred_p4[msk2], gen_p4[msk2])  # for regressing p4
 
         if args.classification_only:
             loss = l1
@@ -179,11 +184,11 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
         t1 = time.time()
 
-        accuracies_batch.append(accuracy_score(target_ids.detach().cpu().numpy(), cand_ids.detach().cpu().numpy()))
-        accuracies_batch_msk.append(accuracy_score(target_ids[msk].detach().cpu().numpy(), cand_ids[msk].detach().cpu().numpy()))
+        accuracies_batch.append(accuracy_score(gen_ids.detach().cpu().numpy(), pred_ids.detach().cpu().numpy()))
+        accuracies_batch_msk.append(accuracy_score(gen_ids[msk].detach().cpu().numpy(), pred_ids[msk].detach().cpu().numpy()))
 
-        conf_matrix += sklearn.metrics.confusion_matrix(target_ids.detach().cpu().numpy(),
-                                        np.argmax(cand_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
+        conf_matrix += sklearn.metrics.confusion_matrix(gen_ids.detach().cpu().numpy(),
+                                        np.argmax(pred_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
 
         # print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
 
@@ -265,10 +270,10 @@ def train_loop():
         plot_confusion_matrix(conf_matrix_norm_v, ["none", "ch.had", "n.had", "g", "el", "mu"], fname = outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch), epoch=epoch)
 
         with open(outpath + '/confusion_matrix_plots/cmT_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
-            pickle.dump(conf_matrix_norm, f)
+            pkl.dump(conf_matrix_norm, f)
 
         with open(outpath + '/confusion_matrix_plots/cmV_normed_epoch_' + str(epoch) + '.pkl', 'wb') as f:
-            pickle.dump(conf_matrix_norm_v, f)
+            pkl.dump(conf_matrix_norm_v, f)
 
     make_plot_from_list(losses_tot_train, 'train loss_tot', 'Epochs', 'Loss', outpath, 'losses_tot_train')
     make_plot_from_list(losses_1_train, 'train loss_1', 'Epochs', 'Loss', outpath, 'losses_1_train')
@@ -303,11 +308,6 @@ if __name__ == "__main__":
     'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
     'load': True, 'load_epoch': 15, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_16_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn1_nn3',
     'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'conv2': False, 'nn3': True, 'title': ''})
-
-    if args.train:
-        print('training,,,,,')
-    else:
-        print('loading,,,,')
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -366,6 +366,9 @@ if __name__ == "__main__":
 
             model.load_state_dict(state_dict)
 
+            if args.train:
+                print("Training a previously trained model..")
+
     elif args.train:
         #instantiate the model
         print('Instantiating a model..')
@@ -407,7 +410,7 @@ if __name__ == "__main__":
             pass
 
         with open('{}/model_kwargs.pkl'.format(outpath), 'wb') as f:
-            pickle.dump(model_kwargs, f,  protocol=pickle.HIGHEST_PROTOCOL)
+            pkl.dump(model_kwargs, f,  protocol=pkl.HIGHEST_PROTOCOL)
 
         if not os.path.exists(outpath + '/confusion_matrix_plots/'):
             os.makedirs(outpath + '/confusion_matrix_plots/')
@@ -423,9 +426,21 @@ if __name__ == "__main__":
         model.train()
         train_loop()
 
-        # evaluate on training data.. make regression plots
+        # evaluate on training data..
         os.makedirs(outpath+'/train_loader')
-        Evaluate(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs)
+        os.makedirs(outpath+'/train_loader/resolution_plots')
+        os.makedirs(outpath+'/train_loader/distribution_plots')
+        os.makedirs(outpath+'/train_loader/multiplicity_plots')
+        os.makedirs(outpath+'/train_loader/efficiency_plots')
+        Evaluate(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs, which_data="training data")
+
+        # evaluate on validation data..
+        os.makedirs(outpath+'/valid_loader')
+        os.makedirs(outpath+'/valid_loader/resolution_plots')
+        os.makedirs(outpath+'/valid_loader/distribution_plots')
+        os.makedirs(outpath+'/valid_loader/multiplicity_plots')
+        os.makedirs(outpath+'/valid_loader/efficiency_plots')
+        Evaluate(model, valid_loader, outpath+'/valid_loader', args.target, device, args.n_epochs, which_data="validation data")
 
     # evaluate the model on test data
     if args.evaluate:
@@ -435,19 +450,23 @@ if __name__ == "__main__":
         model = model.to(device)
         model.eval()
 
-        if args.train:
-            os.makedirs(outpath+'/test_loader')
-            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs)
-        elif args.load:
-            Evaluate(model, test_loader, outpath, args.target, device, args.load_epoch)
+        if osp.isdir(outpath+'/test_loader'):
+            import shutil
+            shutil.rmtree(outpath+'/test_loader')
+        os.makedirs(outpath+'/test_loader')
+        os.makedirs(outpath+'/test_loader/resolution_plots')
+        os.makedirs(outpath+'/test_loader/distribution_plots')
+        os.makedirs(outpath+'/test_loader/multiplicity_plots')
+        os.makedirs(outpath+'/test_loader/efficiency_plots')
+        Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch, which_data="testing data")
 
 ## -----------------------------------------------------------
-# # to retrieve a stored variable in pkl file
-# import pickle
+# to retrieve a stored variable in pkl file
+# import pickle as pkl
 # with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_normed_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     a = pickle.load(f)
+#     a = pkl.load(f)
 #
 # with open('../../data/pythia8_qcd/raw/tev14_pythia8_qcd_10_0.pkl', 'rb') as pickle_file:
-#     data = pickle.load(pickle_file)
+#     data = pkl.load(pickle_file)
 #
 # data.keys()

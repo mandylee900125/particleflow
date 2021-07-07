@@ -139,16 +139,16 @@ class PFNet7(nn.Module):
             x = self.conv2(x, edge_index=edge_index, edge_weight=edge_weight)
 
         # DNN to predict PID
-        cand_ids = self.nn2(x)
+        pred_ids = self.nn2(x)
 
         # DNN to predict p4
         if self.nn3:
-            nn3_input = torch.cat([x, cand_ids, x0], axis=-1)
-            cand_p4 = self.nn3(nn3_input)
+            nn3_input = torch.cat([x, pred_ids, x0], axis=-1)
+            pred_p4 = self.nn3(nn3_input)
         else:
-            cand_p4=torch.zeros_like(data.ycand)
+            pred_p4=torch.zeros_like(data.ycand)
 
-        return cand_ids, cand_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
+        return pred_ids, pred_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
 # -------------------------------------------------------------------------------------
 # # uncomment to test a forward pass
@@ -165,5 +165,5 @@ class PFNet7(nn.Module):
 # model = PFNet7()
 #
 # for batch in train_loader:
-#     cand_ids, cand_p4, target_ids, target_p4, pf_ids, pf_p4 = model(batch)
+#     pred_ids, pred_p4, gen_ids, gen_p4, cand_ids, cand_p4 = model(batch)
 #     break

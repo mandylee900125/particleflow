@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import mplhep
+import mplhep as hep
 import os.path as osp
 
 pid_to_text = {
@@ -187,6 +187,7 @@ def plot_confusion_matrix(cm, target_names,
     import matplotlib.pyplot as plt
     import numpy as np
     import itertools
+    plt.style.use('default')
 
     accuracy = np.trace(cm) / float(np.sum(cm))
     misclass = 1 - accuracy

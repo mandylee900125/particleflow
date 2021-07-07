@@ -1,6 +1,16 @@
+import args
+from args import parse_args
+import sklearn
+import sklearn.metrics
 import numpy as np
-import mplhep
+import pandas, mplhep
 import pickle as pkl
+import time, math
+
+import sys
+import os.path as osp
+sys.path.insert(1, '../../plotting/')
+sys.path.insert(1, '../../mlpf/plotting/')
 
 import torch
 import torch_geometric
@@ -19,19 +29,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits
 import mplhep as hep
-
 plt.style.use(hep.style.ROOT)
 
-### Given a dictionary with 3 keys "ygen", "ycand" and "ypred"; make some plots
-### Each of the 3 keys is a big tensor of shape (1, big_number, 7) where 7 denotes [pid, charge, pt, eta, sphi, cphi, energy]
+elem_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+class_labels = [0, 1, 2, 3, 4, 5]
 
-# retrieve predictions:
-with open('../../prp/models/yee/PFNet7_gen_ntrain_1_nepochs_16_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn1_nn3/fi.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-    fi = pkl.load(f)
-
-ygen = fi["ygen"].reshape(-1,7)
-ypred = fi["ypred"].reshape(-1,7)
-ycand = fi["ycand"].reshape(-1,7)
+#map these to ids 0...Nclass
+class_to_id = {r: class_labels[r] for r in range(len(class_labels))}
+# map these to ids 0...Nclass
+elem_to_id = {r: elem_labels[r] for r in range(len(elem_labels))}
 
 sample_title_qcd = "QCD, 14 TeV, PU200"
 sample_title_ttbar = "$t\\bar{t}$, 14 TeV, PU200"
@@ -86,6 +92,134 @@ var_indices = {
     "energy": 6
 }
 
+def deltaphi(phi1, phi2):
+    return np.fmod(phi1 - phi2 + np.pi, 2*np.pi) - np.pi
+
+def mse_unreduced(true, pred):
+    return torch.square(true-pred)
+
+# computes accuracy of PID predictions given a one_hot_embedding: truth & pred
+def accuracy(true_id, pred_id):
+    # revert one_hot_embedding
+    _, true_id = torch.max(true_id, -1)
+    _, pred_id = torch.max(pred_id, -1)
+
+    is_true = (true_id !=0)
+    is_same = (true_id == pred_id)
+
+    acc = (is_same&is_true).sum() / is_true.sum()
+    return acc
+
+# computes the resolution given a one_hot_embedding truth & pred + p4 of truth & pred
+def energy_resolution(true_id, true_p4, pred_id, pred_p4):
+    # revert one_hot_embedding
+    _,true_id= torch.max(true_id, -1)
+    _,pred_id = torch.max(pred_id, -1)
+
+    msk = (true_id!=0)
+
+    return mse_unreduced(true_p4[msk], pred_p4[msk])
+
+def plot_regression(val_x, val_y, var_name, rng, target, fname):
+    fig = plt.figure(figsize=(5,5))
+    plt.hist2d(
+        val_x,
+        val_y,
+        bins=(rng, rng),
+        cmap="Blues",
+        #norm=matplotlib.colors.LogNorm()
+    );
+
+    if target=='cand':
+        plt.xlabel("Cand {}".format(var_name))
+    elif target=='gen':
+        plt.xlabel("Gen {}".format(var_name))
+
+    plt.ylabel("MLPF {}".format(var_name))
+
+    plt.savefig(fname + '.png')
+    plt.close(fig)
+
+    return fig
+
+def plot_distribution(val_x, val_y, var_name, rng, target, fname):
+    plt.style.use("default")
+
+    fig = plt.figure(figsize=(5,5))
+
+    if target=='cand':
+        plt.hist(val_x, bins=rng, density=True, histtype="step", lw=2, label="cand");
+    elif target=='gen':
+        plt.hist(val_x, bins=rng, density=True, histtype="step", lw=2, label="gen");
+
+    plt.hist(val_y, bins=rng, density=True, histtype="step", lw=2, label="MLPF");
+    plt.xlabel(var_name)
+    plt.legend(loc="best", frameon=False)
+    plt.ylim(0,1.5)
+
+    plt.savefig(fname + '.png')
+    plt.close(fig)
+
+    return fig
+
+def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
+    #Ground truth vs model prediction particles
+    fig = plt.figure(figsize=(10,10))
+
+    true_p4 = true_p4.detach().numpy()
+    pred_p4 = pred_p4.detach().numpy()
+
+    msk = (true_id == pid)
+    plt.scatter(true_p4[msk, 2], np.arctan2(true_p4[msk, 3], true_p4[msk, 4]), s=2*true_p4[msk, 2], marker="o", alpha=0.5)
+
+    msk = (pred_id == pid)
+    plt.scatter(pred_p4[msk, 2], np.arctan2(pred_p4[msk, 3], pred_p4[msk, 4]), s=2*pred_p4[msk, 2], marker="o", alpha=0.5)
+
+    plt.xlabel("eta")
+    plt.ylabel("phi")
+    plt.xlim(-5,5)
+    plt.ylim(-4,4)
+
+    plt.savefig(fname + '.png')
+    plt.close(fig)
+
+    return fig
+
+def plot_all_distributions(true_id, true_p4, pred_id, pred_p4, pf_id, cand_p4, target, epoch, outpath):
+    plt.style.use("default")
+
+    _, true_id = torch.max(true_id, -1)
+    _, pred_id = torch.max(pred_id, -1)
+    _, pf_id = torch.max(pf_id, -1)
+
+    msk = (pred_id!=0) & (true_id!=0)
+
+    ch_true = true_p4[msk, 0].flatten().detach().numpy()
+    ch_pred = pred_p4[msk, 0].flatten().detach().numpy()
+
+    pt_true = true_p4[msk, 1].flatten().detach().numpy()
+    pt_pred = pred_p4[msk, 1].flatten().detach().numpy()
+
+    e_true = true_p4[msk, 5].flatten().detach().numpy()
+    e_pred = pred_p4[msk, 5].flatten().detach().numpy()
+
+    eta_true = true_p4[msk, 2].flatten().detach().numpy()
+    eta_pred = pred_p4[msk, 2].flatten().detach().numpy()
+
+    sphi_true = true_p4[msk, 3].flatten().detach().numpy()
+    sphi_pred = pred_p4[msk, 3].flatten().detach().numpy()
+
+    cphi_true = true_p4[msk, 4].flatten().detach().numpy()
+    cphi_pred = pred_p4[msk, 4].flatten().detach().numpy()
+
+    figure = plot_distribution(ch_true, ch_pred, "charge", np.linspace(0, 5, 100), target, fname = outpath+'distribution_plots/charge_distribution')
+    figure = plot_distribution(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'distribution_plots/pt_distribution')
+    figure = plot_distribution(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = outpath+'distribution_plots/energy_distribution')
+    figure = plot_distribution(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = outpath+'distribution_plots/eta_distribution')
+    figure = plot_distribution(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = outpath+'distribution_plots/sphi_distribution')
+    figure = plot_distribution(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = outpath+'distribution_plots/cphi_distribution')
+
+
 def midpoints(x):
     return x[:-1] + np.diff(x)/2
 
@@ -102,6 +236,8 @@ def divide_zero(a, b):
     return out
 
 def plot_pt_eta(ygen, legend_title=""):
+    plt.style.use(hep.style.ROOT)
+
     b = np.linspace(0, 100, 41)
 
     msk_pid1 = (ygen[:, 0]==1)
@@ -149,75 +285,70 @@ def plot_pt_eta(ygen, legend_title=""):
     ax2.set_ylabel("Truth particles")
     return ax1, ax2
 
-def plot_num_particles_pid(fi, pid=0, ax=None, legend_title=""):
+def plot_num_particles_pid(list, key, ax=None, legend_title=""):
+    plt.style.use(hep.style.ROOT)
+
+    pid = key_to_pid[key]
     if not ax:
         plt.figure(figsize=(4,4))
         ax = plt.axes()
 
-    #compute the number of particles per event
-    if pid == 0:
-        x1=fi["ygen"][:, :, 0]!=pid
-        x1_msk=np.sum(x1, axis=1)
-        x2=fi["ypred"][:, :, 0]!=pid
-        x2_msk=np.sum(x2, axis=1)
-        x3=fi["ycand"][:, :, 0]!=pid
-        x3_msk=np.sum(x3, axis=1)
-    else:
-        x1=fi["ygen"][:, :, 0]==pid
-        x1_msk=np.sum(x1, axis=1)
-        x2=fi["ypred"][:, :, 0]==pid
-        x2_msk=np.sum(x2, axis=1)
-        x3=fi["ycand"][:, :, 0]==pid
-        x3_msk=np.sum(x3, axis=1)
+    cand_list = list[0]
+    target_list = list[1]
+    pf_list = list[2]
 
-    v0 = np.min([np.min(x1_msk), np.min(x2_msk), np.min(x3_msk)])
-    v1 = np.max([np.max(x1_msk), np.max(x2_msk), np.max(x3_msk)])
+    a = np.array(pf_list[key])
+    b = np.array(target_list[key])
 
-    #draw only a random sample of the events to avoid overcrowding
-    inds = np.random.permutation(len(fi["ygen"][:, :, 0][0]))[:1000]
-
-    ratio_dpf = (x3[inds] - x1[inds]) / x1[inds]
+    ratio_dpf = (a - b) / b
     ratio_dpf[ratio_dpf > 10] = 10
     ratio_dpf[ratio_dpf < -10] = -10
     mu_dpf = np.mean(ratio_dpf)
     sigma_dpf = np.std(ratio_dpf)
 
     ax.scatter(
-        x1[inds],
-        x3[inds],
+        target_list[key],
+        cand_list[key],
         marker="o",
         label="Rule-based PF, $r={0:.3f}$\n$\mu={1:.3f}\\ \sigma={2:.3f}$".format(
-            np.corrcoef(x1, x3)[0,1], mu_dpf, sigma_dpf
+            np.corrcoef(a, b)[0,1], mu_dpf, sigma_dpf
         ),
         alpha=0.5
     )
 
-    ratio_mlpf = (x2[inds] - x1[inds]) / x1[inds]
+    c = np.array(cand_list[key])
+    b = np.array(target_list[key])
+
+    ratio_mlpf = (c - b) / b
     ratio_mlpf[ratio_mlpf > 10] = 10
     ratio_mlpf[ratio_mlpf < -10] = -10
     mu_mlpf = np.mean(ratio_mlpf)
     sigma_mlpf = np.std(ratio_mlpf)
 
     ax.scatter(
-        x1[inds],
-        x2[inds],
+        target_list[key],
+        cand_list[key],
         marker="^",
         label="MLPF, $r={0:.3f}$\n$\mu={1:.3f}\\ \sigma={2:.3f}$".format(
-            np.corrcoef(x1, x2)[0,1], mu_mlpf, sigma_mlpf
+            np.corrcoef(a, b)[0,1], mu_mlpf, sigma_mlpf
         ),
         alpha=0.5
     )
-    leg = ax.legend(loc="best", frameon=False, title=legend_title+pid_names[pid] if pid>0 else "all particles")
-    for lh in leg.legendHandles:
-        lh.set_alpha(1)
-    ax.plot([v0, v1], [v0, v1], color="black", ls="--")
-    #ax.set_title(pid_names[pid])
+
+    lims = [
+        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+    ]
+    # now plot both limits against each other
+    ax.plot(lims, lims, '--', alpha=0.75, zorder=0)
+    ax.set_aspect('equal')
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+    plt.tight_layout()
+    ax.legend(frameon=False, title=legend_title+pid_names[pid])
     ax.set_xlabel("Truth particles / event")
     ax.set_ylabel("Reconstructed particles / event")
-    #plt.title("Particle multiplicity, {}".format(pid_names[pid]))
-    #plt.savefig("plots/num_particles_pid{}.pdf".format(pid), bbox_inches="tight")
-    return {"sigma_dpf": sigma_dpf, "sigma_mlpf": sigma_mlpf, "ratio_mlpf": ratio_mlpf, "ratio_dpf": ratio_dpf,
-        "x1": x1, "x2": x2, "x3": x3}
+    plt.title("Particle multiplicity")
 
 def draw_efficiency_fakerate(ygen, ypred, ycand, pid, var, bins, both=True, legend_title=""):
     var_idx = var_indices[var]
@@ -330,6 +461,8 @@ def get_fake(ygen, ypred, ycand):
     }
 
 def plot_reso(ygen, ypred, ycand, pid, var, rng, ax=None, legend_title=""):
+    plt.style.use(hep.style.ROOT)
+
     var_idx = var_indices[var]
     msk = (ygen[:, 0]==pid) & (ycand[:, 0]==pid)
     bins = np.linspace(-rng, rng, 100)
@@ -365,165 +498,3 @@ def plot_reso(ygen, ypred, ycand, pid, var, rng, ax=None, legend_title=""):
     ax.set_yscale("log")
 
     return {"dpf": res_dpf, "mlpf": res_mlpf}
-
-
-# if __name__ == "__main__":
-
-    # # make pt, eta plots to visualize dataset
-    # ax, _ = plot_pt_eta(ygen)
-    # plt.savefig("gen_pt_eta.png", bbox_inches="tight")
-
-    # # plot number of particles
-    # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 2*8))
-    # ret_num_particles_ch_had = plot_num_particles_pid(fi, 1, ax1)
-    # ret_num_particles_n_had = plot_num_particles_pid(fi, 2, ax2)
-    # plt.tight_layout()
-    # plt.savefig("num_particles.png", bbox_inches="tight")
-    # plt.savefig("num_particles.png", bbox_inches="tight", dpi=200)
-
-    # # make efficiency plots for charged hadrons
-    # ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "pt", np.linspace(0, 3, 61), both=False, legend_title=sample_title_qcd+"\n")
-    # plt.savefig("eff_fake_pid1_pt.png", bbox_inches="tight")
-    #
-    # ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "eta", np.linspace(-3, 3, 61), both=False, legend_title=sample_title_qcd+"\n")
-    # plt.savefig("eff_fake_pid1_eta.png", bbox_inches="tight")
-    #
-    # ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "energy", np.linspace(-3, 3, 61), both=False, legend_title=sample_title_qcd+"\n")
-    # plt.savefig("eff_fake_pid1_energy.png", bbox_inches="tight")
-    #
-    # # make resolution plots
-    # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 2*8))
-    #
-    # res_ch_had_pt = plot_reso(ygen, ypred, ycand, 1, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
-    # res_ch_had_eta = plot_reso(ygen, ypred, ycand, 1, "eta", 0.2, ax=ax2, legend_title=sample_title_qcd+"\n")
-    # res_ch_had_E = plot_reso(ygen, ypred, ycand, 1, "energy", 0.2, ax=ax3, legend_title=sample_title_qcd+"\n")
-    # # ax1.set_ylim(100, 10**11)
-    # # ax2.set_ylim(100, 10**11)
-    # plt.tight_layout()
-    # plt.savefig("res_pid1.png", bbox_inches="tight")
-    #
-    # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 2*8))
-    # res_n_had_pt = plot_reso(ygen, ypred, ycand, 2, "pt", 1, ax=ax1, legend_title=sample_title_qcd+"\n")
-    # res_n_had_eta = plot_reso(ygen, ypred, ycand, 2, "eta", 0.2, ax=ax2, legend_title=sample_title_qcd+"\n")
-    # res_n_had_E = plot_reso(ygen, ypred, ycand, 2, "energy", 0.2, ax=ax3, legend_title=sample_title_qcd+"\n")
-    # # ax1.set_ylim(100, 10**11)
-    # # ax2.set_ylim(100, 10**11)
-    # plt.tight_layout()
-    # plt.savefig("res_pid2.png", bbox_inches="tight")
-    #
-    # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 2*8))
-    # res_phtons_pt = plot_reso(ygen, ypred, ycand, 3, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
-    # res_phtons_eta = plot_reso(ygen, ypred, ycand, 3, "eta", 0.2, ax=ax2, legend_title=sample_title_qcd+"\n")
-    # res_phtons_E = plot_reso(ygen, ypred, ycand, 3, "energy", 0.2, ax=ax3, legend_title=sample_title_qcd+"\n")
-    # # ax1.set_ylim(100, 10**11)
-    # # ax2.set_ylim(100, 10**11)
-    # plt.tight_layout()
-    # plt.savefig("res_pid3.png", bbox_inches="tight")
-    #
-    # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 2*8))
-    # res_electrons_pt = plot_reso(ygen, ypred, ycand, 4, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
-    # res_electrons_eta = plot_reso(ygen, ypred, ycand, 4, "eta", 0.2, ax=ax2, legend_title=sample_title_qcd+"\n")
-    # res_electrons_E = plot_reso(ygen, ypred, ycand, 4, "energy", 0.2, ax=ax3, legend_title=sample_title_qcd+"\n")
-    # # ax1.set_ylim(100, 10**11)
-    # # ax2.set_ylim(100, 10**11)
-    # plt.tight_layout()
-    # plt.savefig("res_pid4.png", bbox_inches="tight")
-    #
-    # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 2*8))
-    # res_muons_pt = plot_reso(ygen, ypred, ycand, 5, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
-    # res_muons_eta = plot_reso(ygen, ypred, ycand, 5, "eta", 0.2, ax=ax2, legend_title=sample_title_qcd+"\n")
-    # res_muons_E = plot_reso(ygen, ypred, ycand, 5, "energy", 0.2, ax=ax3, legend_title=sample_title_qcd+"\n")
-    # # ax1.set_ylim(100, 10**11)
-    # # ax2.set_ylim(100, 10**11)
-    # plt.tight_layout()
-    # plt.savefig("res_pid5.png", bbox_inches="tight")
-
-
-# retrieve predictions:
-with open('../../prp/models/yee/PFNet7_gen_ntrain_1_nepochs_16_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn1_nn3/list.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-    list = pkl.load(f)
-
-cand_list = list[0]
-target_list = list[1]
-pf_list = list[2]
-
-pf_list
-    ratio_dpf = (a-b)/ b
-    ratio_dpf[ratio_dpf > 10] = 10
-    ratio_dpf[ratio_dpf < -10] = -10
-    mu_dpf = np.mean(ratio_dpf)
-    sigma_dpf = np.std(ratio_dpf)
-
-
-a = np.array(pf_list["chhadron"])
-b = np.array(target_list["chhadron"])
-
-
-def plot_num_particles_pid(list, key, ax=None, legend_title=""):
-    pid = key_to_pid[key]
-    if not ax:
-        plt.figure(figsize=(4,4))
-        ax = plt.axes()
-
-    cand_list = list[0]
-    target_list = list[1]
-    pf_list = list[2]
-
-    a = np.array(pf_list[key])
-    b = np.array(target_list[key])
-
-    ratio_dpf = (a - b) / b
-    ratio_dpf[ratio_dpf > 10] = 10
-    ratio_dpf[ratio_dpf < -10] = -10
-    mu_dpf = np.mean(ratio_dpf)
-    sigma_dpf = np.std(ratio_dpf)
-
-    ax.scatter(
-        target_list[key],
-        cand_list[key],
-        marker="o",
-        label="Rule-based PF, $r={0:.3f}$\n$\mu={1:.3f}\\ \sigma={2:.3f}$".format(
-            np.corrcoef(a, b)[0,1], mu_dpf, sigma_dpf
-        ),
-        alpha=0.5
-    )
-
-    c = np.array(cand_list[key])
-    b = np.array(target_list[key])
-
-    ratio_mlpf = (c - b) / b
-    ratio_mlpf[ratio_mlpf > 10] = 10
-    ratio_mlpf[ratio_mlpf < -10] = -10
-    mu_mlpf = np.mean(ratio_mlpf)
-    sigma_mlpf = np.std(ratio_mlpf)
-
-    ax.scatter(
-        target_list[key],
-        cand_list[key],
-        marker="^",
-        label="MLPF, $r={0:.3f}$\n$\mu={1:.3f}\\ \sigma={2:.3f}$".format(
-            np.corrcoef(a, b)[0,1], mu_mlpf, sigma_mlpf
-        ),
-        alpha=0.5
-    )
-
-    lims = [
-        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
-    ]
-    # now plot both limits against each other
-    ax.plot(lims, lims, '--', alpha=0.75, zorder=0)
-    ax.set_aspect('equal')
-    ax.set_xlim(lims)
-    ax.set_ylim(lims)
-    plt.tight_layout()
-    ax.legend(frameon=False, title=legend_title+pid_names[pid])
-
-    ax.set_xlabel("Truth particles / event")
-    ax.set_ylabel("Reconstructed particles / event")
-    plt.title("Particle multiplicity")
-    plt.savefig("num_"+key+".png", bbox_inches="tight")
-
-# plot number of particles
-fig, ax = plt.subplots(1, 1, figsize=(8, 2*8))
-ret_num_particles_ch_had = plot_num_particles_pid(list, "null", ax)
