@@ -46,7 +46,7 @@ print('device is: ', device)
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=64, embedding_dim=3, encoding_of_clusters=True,
+        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=64, embedding_dim=0, encoding_of_clusters=True,
         output_dim_id=6,
         output_dim_p4=6,
         space_dim=8, propagate_dimensions=22, nearest=40,
