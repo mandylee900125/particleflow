@@ -155,6 +155,30 @@ from graph_data_delphes import PFGraphDataset
 from data_preprocessing import data_to_loader_ttbar
 from data_preprocessing import data_to_loader_qcd
 
+
+import torch
+use_gpu = torch.cuda.device_count()>0
+multi_gpu = torch.cuda.device_count()>1
+
+try:
+    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
+        import setGPU
+        if multi_gpu:
+            print('Will use multi_gpu..')
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+        else:
+            print('Will use single_gpu..')
+except Exception as e:
+    print("Could not import setGPU, running CPU-only")
+
+#define the global base device
+if use_gpu:
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
+
+print('device is: ', device)
+
 full_dataset = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
 
 train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)
@@ -162,5 +186,6 @@ train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_val
 model = PFNet7()
 
 for batch in train_loader:
-    pred_ids, pred_p4, gen_ids, gen_p4, cand_ids, cand_p4 = model(batch)
+    X = batch.to(device)
+    pred_ids, pred_p4, gen_ids, gen_p4, cand_ids, cand_p4 = model(X)
     break
