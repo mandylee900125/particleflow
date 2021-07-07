@@ -37,7 +37,7 @@ except Exception as e:
 
 #define the global base device
 if use_gpu:
-    device = torch.device('cuda:0')
+    device = torch.device('cuda')
 else:
     device = torch.device('cpu')
 
