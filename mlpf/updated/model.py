@@ -46,7 +46,7 @@ print('device is: ', device)
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=64, embedding_dim=0, encoding_of_clusters=False,
+        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=64, embedding_dim=3, encoding_of_clusters=True,
         output_dim_id=6,
         output_dim_p4=6,
         space_dim=8, propagate_dimensions=22, nearest=40,
@@ -149,7 +149,7 @@ class PFNet7(nn.Module):
             # embed the "type" feature
             embedding = nn.Embedding(self.embedding_dim, 1)
 
-            add = embedding(x0[:,0].long().to(self.device)).reshape(-1,1)
+            add = embedding(x0[:,0].long()).reshape(-1,1)
             x0=torch.cat([add,x0[:,1:]], axis=1)
 
         # Encoder/Decoder step
@@ -180,13 +180,12 @@ from graph_data_delphes import PFGraphDataset
 from data_preprocessing import data_to_loader_ttbar
 from data_preprocessing import data_to_loader_qcd
 
-
-
 full_dataset = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
 
 train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)
 
 model = PFNet7()
+model.to(device)
 
 for batch in train_loader:
     X = batch.to(device)
