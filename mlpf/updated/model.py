@@ -19,6 +19,30 @@ from torch.utils.data import random_split
 from gravnet import GravNetConv
 from torch_geometric.nn import GraphConv
 
+
+import torch
+use_gpu = torch.cuda.device_count()>0
+multi_gpu = torch.cuda.device_count()>1
+
+try:
+    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
+        import setGPU
+        if multi_gpu:
+            print('Will use multi_gpu..')
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+        else:
+            print('Will use single_gpu..')
+except Exception as e:
+    print("Could not import setGPU, running CPU-only")
+
+#define the global base device
+if use_gpu:
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
+
+print('device is: ', device)
+
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
@@ -26,7 +50,7 @@ class PFNet7(nn.Module):
         output_dim_id=6,
         output_dim_p4=6,
         space_dim=8, propagate_dimensions=22, nearest=40,
-        target="gen", nn1=True, nn3=True, nn0track=True, nn0cluster=True):
+        target="gen", nn1=True, nn3=True, nn0track=True, nn0cluster=True, device=device):
 
         super(PFNet7, self).__init__()
 
@@ -37,6 +61,7 @@ class PFNet7(nn.Module):
         self.nn0cluster = nn0cluster
         self.embedding_dim = embedding_dim
         self.encoding_of_clusters = encoding_of_clusters
+        self.device=device
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
@@ -124,7 +149,7 @@ class PFNet7(nn.Module):
             # embed the "type" feature
             embedding = nn.Embedding(self.embedding_dim, 1)
 
-            add = embedding(x0[:,0].long()).reshape(-1,1)
+            add = embedding(x0[:,0].long().to(self.device)).reshape(-1,1)
             x0=torch.cat([add,x0[:,1:]], axis=1)
 
         # Encoder/Decoder step
@@ -156,28 +181,6 @@ from data_preprocessing import data_to_loader_ttbar
 from data_preprocessing import data_to_loader_qcd
 
 
-import torch
-use_gpu = torch.cuda.device_count()>0
-multi_gpu = torch.cuda.device_count()>1
-
-try:
-    if not ("CUDA_VISIBLE_DEVICES" in os.environ):
-        import setGPU
-        if multi_gpu:
-            print('Will use multi_gpu..')
-            print("Let's use", torch.cuda.device_count(), "GPUs!")
-        else:
-            print('Will use single_gpu..')
-except Exception as e:
-    print("Could not import setGPU, running CPU-only")
-
-#define the global base device
-if use_gpu:
-    device = torch.device('cuda:0')
-else:
-    device = torch.device('cpu')
-
-print('device is: ', device)
 
 full_dataset = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
 
