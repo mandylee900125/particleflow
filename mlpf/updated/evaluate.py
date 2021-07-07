@@ -102,7 +102,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
         cand_ids_all.append(cand_ids_one_hot.detach().cpu())
         cand_p4_all.append(cand_p4.detach().cpu())
 
-    # store the 3 dictionaries to compute the particle multiplicity plots
+    # store the 3 list dictionaries in a list (this is done only to compute the particle multiplicity plots)
     list = [pred_list, gen_list, cand_list]
     with open(path + '/list_for_multiplicities.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
         pkl.dump(list, f)
@@ -131,14 +131,15 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     ypred = torch.cat([pred_ids.argmax(axis=1).reshape(-1,1),pred_p4], axis=1)
     ycand = torch.cat([cand_ids.argmax(axis=1).reshape(-1,1),cand_p4], axis=1)
 
-    fi = {"ygen":ygen.reshape(1,-1,7).numpy(), "ycand":ycand.reshape(1,-1,7).numpy(), "ypred":ypred.reshape(1,-1,7).numpy()}
+    # store the actual predictions to make all the other plots
+    predictions = {"ygen":ygen.reshape(1,-1,7).numpy(), "ycand":ycand.reshape(1,-1,7).numpy(), "ypred":ypred.reshape(1,-1,7).numpy()}
 
-    with open(path + '/fi.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
-        pkl.dump(fi, f)
+    with open(path + '/predictions.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
+        pkl.dump(predictions, f)
 
-    ygen = fi["ygen"].reshape(-1,7)
-    ypred = fi["ypred"].reshape(-1,7)
-    ycand = fi["ycand"].reshape(-1,7)
+    ygen = predictions["ygen"].reshape(-1,7)
+    ypred = predictions["ypred"].reshape(-1,7)
+    ycand = predictions["ycand"].reshape(-1,7)
 
     print('Making plots on ' + which_data)
 
@@ -159,7 +160,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     ax, _ = plot_pt_eta(ygen)
     plt.savefig(outpath+"gen_pt_eta.png", bbox_inches="tight")
 
-    # plot number of particles
+    # plot particle multiplicity plots
     fig, ax = plt.subplots(1, 1, figsize=(8, 2*8))
     ret_num_particles_null = plot_num_particles_pid(list, "null", ax)
     plt.savefig(outpath+"/multiplicity_plots/num_null.png", bbox_inches="tight")
@@ -190,18 +191,33 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     plt.savefig(outpath+"multiplicity_plots/num_muon.png", bbox_inches="tight")
     plt.close(fig)
 
-    # make efficiency plots for charged hadrons
-    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "pt", np.linspace(0, 3, 61), both=False, legend_title=sample_title_qcd+"\n")
+    # make efficiency and fake rate plots for charged hadrons
+    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "pt", np.linspace(0, 3, 61), both=True, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"efficiency_plots/eff_fake_pid1_pt.png", bbox_inches="tight")
+    plt.close(fig)
 
-    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "eta", np.linspace(-3, 3, 61), both=False, legend_title=sample_title_qcd+"\n")
+    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "eta", np.linspace(-3, 3, 61), both=True, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"efficiency_plots/eff_fake_pid1_eta.png", bbox_inches="tight")
+    plt.close(fig)
 
-    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "energy", np.linspace(-3, 3, 61), both=False, legend_title=sample_title_qcd+"\n")
+    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 1, "energy", np.linspace(0, 50, 75), both=True, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"efficiency_plots/eff_fake_pid1_energy.png", bbox_inches="tight")
+    plt.close(fig)
 
-    # make resolution plots
-    # chhadrons: pid=1
+    # make efficiency and fake rate plots for neutral hadrons
+    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 2, "pt", np.linspace(0, 3, 61), both=True, legend_title=sample_title_qcd+"\n")
+    plt.savefig(outpath+"efficiency_plots/eff_fake_pid2_pt.png", bbox_inches="tight")
+    plt.close(fig)
+
+    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 2, "eta", np.linspace(-3, 3, 61), both=True, legend_title=sample_title_qcd+"\n")
+    plt.savefig(outpath+"efficiency_plots/eff_fake_pid2_eta.png", bbox_inches="tight")
+    plt.close(fig)
+
+    ax, _ = draw_efficiency_fakerate(ygen, ypred, ycand, 2, "energy", np.linspace(0, 50, 75), both=True, legend_title=sample_title_qcd+"\n")
+    plt.savefig(outpath+"efficiency_plots/eff_fake_pid2_energy.png", bbox_inches="tight")
+    plt.close(fig)
+
+    # make resolution plots for chhadrons: pid=1
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8))
     res_chhad_pt = plot_reso(ygen, ypred, ycand, 1, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"resolution_plots/res_pid1_pt.png", bbox_inches="tight")
@@ -220,7 +236,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     plt.tight_layout()
     plt.close(fig)
 
-    # nhadrons: pid=2
+    # make resolution plots for nhadrons: pid=2
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8))
     res_nhad_pt = plot_reso(ygen, ypred, ycand, 2, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"resolution_plots/res_pid2_pt.png", bbox_inches="tight")
@@ -239,7 +255,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     plt.tight_layout()
     plt.close(fig)
 
-    # photons: pid=3
+    # make resolution plots for photons: pid=3
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8))
     res_photon_pt = plot_reso(ygen, ypred, ycand, 3, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"resolution_plots/res_pid3_pt.png", bbox_inches="tight")
@@ -258,7 +274,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     plt.tight_layout()
     plt.close(fig)
 
-    # electrons: pid=4
+    # make resolution plots for electrons: pid=4
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8))
     res_electron_pt = plot_reso(ygen, ypred, ycand, 4, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"resolution_plots/res_pid4_pt.png", bbox_inches="tight")
@@ -277,7 +293,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     plt.tight_layout()
     plt.close(fig)
 
-    # muons: pid=5
+    # make resolution plots for muons: pid=5
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8))
     res_muon_pt = plot_reso(ygen, ypred, ycand, 5, "pt", 2, ax=ax1, legend_title=sample_title_qcd+"\n")
     plt.savefig(outpath+"resolution_plots/res_pid5_pt.png", bbox_inches="tight")

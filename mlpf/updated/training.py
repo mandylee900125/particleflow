@@ -295,19 +295,19 @@ def train_loop():
 
 if __name__ == "__main__":
 
-    # args = parse_args()
+    args = parse_args()
 
-    # the next part initializes some args values (to run the script not from terminal)
-    class objectview(object):
-        def __init__(self, d):
-            self.__dict__ = d
-
-    args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 16, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
-    'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-    'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4,
-    'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
-    'load': True, 'load_epoch': 15, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_16_batch_size_1_lr_0.001_alpha_0.0002_both__noskip_nn1_nn3',
-    'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'conv2': False, 'nn3': True, 'title': ''})
+    # # the next part initializes some args values (to run the script not from terminal)
+    # class objectview(object):
+    #     def __init__(self, d):
+    #         self.__dict__ = d
+    #
+    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 1, 'patience': 100, 'hidden_dim': 256, 'hidden_dim_nn1': 64, 'input_encoding': 12, 'encoding_dim': 64, 'embedding_dim': 3,
+    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
+    # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4,
+    # 'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
+    # 'load': True, 'load_epoch': 1, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_2_batch_size_1_lr_0.001_alpha_0.0002_both_noskip_nn1_nn3',
+    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'nn3': True,'nn0track': True, 'nn0cluster': True, 'title': ''})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -336,6 +336,7 @@ if __name__ == "__main__":
                     'hidden_dim_nn1': args.hidden_dim_nn1,
                     'input_encoding': args.input_encoding,
                     'encoding_dim': args.encoding_dim,
+                    'embedding_dim': args.embedding_dim,
                     'output_dim_id': output_dim_id,
                     'output_dim_p4': output_dim_p4,
                     'space_dim': args.space_dim,
@@ -343,8 +344,9 @@ if __name__ == "__main__":
                     'nearest': args.nearest,
                     'target': args.target,
                     'nn1': args.nn1,
-                    'conv2': args.conv2,
-                    'nn3': args.nn3}
+                    'nn3': args.nn3,
+                    'nn0track': args.nn0track,
+                    'nn0cluster': args.nn0cluster}
 
     if args.load:
             print('Loading a previously trained model..')
@@ -382,13 +384,11 @@ if __name__ == "__main__":
         model.to(device)
 
     if args.train:
-        args.title=args.title+'_noskip'
+        args.title=args.title+'noskip'
         if args.nn1:
             args.title=args.title+'_nn1'
         if args.nn3:
             args.title=args.title+'_nn3'
-        if args.conv2:
-            args.title=args.title+'_conv2'
 
         if args.classification_only:
             model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, args.alpha, "clf", args.title)
@@ -458,7 +458,11 @@ if __name__ == "__main__":
         os.makedirs(outpath+'/test_loader/distribution_plots')
         os.makedirs(outpath+'/test_loader/multiplicity_plots')
         os.makedirs(outpath+'/test_loader/efficiency_plots')
-        Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch, which_data="testing data")
+
+        if args.load:
+            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch, which_data="testing data")
+        else:
+            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs, which_data="testing data")
 
 ## -----------------------------------------------------------
 # to retrieve a stored variable in pkl file

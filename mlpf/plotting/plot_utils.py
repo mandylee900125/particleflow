@@ -189,8 +189,9 @@ def plot_confusion_matrix(cm, target_names,
     import itertools
     plt.style.use('default')
 
-    accuracy = np.trace(cm) / float(np.sum(cm))
-    misclass = 1 - accuracy
+    # # only true if it weren't normalized:
+    # accuracy = np.trace(cm) / float(np.sum(cm))
+    # misclass = 1 - accuracy
 
     if cmap is None:
         cmap = plt.get_cmap('Blues')
@@ -202,7 +203,7 @@ def plot_confusion_matrix(cm, target_names,
     fig = plt.figure(figsize=(5, 4))
     ax = plt.axes()
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title + ' at epoch' + str(epoch))
+    plt.title(title + ' at epoch ' + str(epoch))
     plt.colorbar()
 
     if target_names is not None:
@@ -221,11 +222,11 @@ def plot_confusion_matrix(cm, target_names,
                      horizontalalignment="center",
                      color="white" if cm[i, j] > thresh else "black")
 
-
     plt.ylabel('True label')
     plt.xlim(-1, len(target_names))
     plt.ylim(-1, len(target_names))
-    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.xlabel('Predicted label')
+    # plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
     plt.tight_layout()
 
     plt.savefig(fname + '.png')

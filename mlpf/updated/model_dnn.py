@@ -26,7 +26,7 @@ class PFNet7(nn.Module):
         output_dim_id=6,
         output_dim_p4=6,
         space_dim=8, propagate_dimensions=22, nearest=40,
-        target="gen", nn1=True, conv2=True, nn3=True):
+        target="gen", nn1=True, conv2=True, nn3=True, nn4=True):
 
         super(PFNet7, self).__init__()
 
@@ -34,6 +34,7 @@ class PFNet7(nn.Module):
         self.nn1 = nn1
         self.conv2 = conv2
         self.nn3 = nn3
+        self.nn4 = nn4
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
@@ -69,6 +70,13 @@ class PFNet7(nn.Module):
             self.act(0.5),
             nn.Linear(hidden_dim, hidden_dim),
             self.act(0.5),
+        )
+
+        self.nn4 = nn.Sequential(
+            nn.Linear(hidden_dim + output_dim_id + input_dim, hidden_dim),
+            self.act(0.5),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.act(0.5),
             nn.Linear(hidden_dim, hidden_dim),
             self.act(0.5),
             nn.Linear(hidden_dim, output_dim_p4),
@@ -83,23 +91,29 @@ class PFNet7(nn.Module):
             x = self.nn1(x0)
 
         # DNN to predict PID
-        cand_ids = self.nn2(torch.cat([x, x0], axis=-1))
+        pred_ids = self.nn2(torch.cat([x, x0], axis=-1))
 
         # DNN to predict p4
         if self.nn3:
-            nn3_input = torch.cat([x, cand_ids, x0], axis=-1)
-            cand_p4 = self.nn3(nn3_input)
+            nn3_input = torch.cat([x, pred_ids, x0], axis=-1)
+            pred_p4 = self.nn3(nn3_input)
         else:
-            cand_p4=torch.zeros_like(data.ycand)
+            pred_p4=torch.zeros_like(data.ycand)
 
-        return cand_ids, cand_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
+        if self.nn4:
+            nn3_input = torch.cat([pred_p4, pred_ids, x0], axis=-1)
+            pred_p4 = self.nn4(nn3_input)
+        else:
+            pred_p4=torch.zeros_like(data.ycand)
+
+        return pred_ids, pred_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
 # -------------------------------------------------------------------------------------
-## uncomment to test a forward pass
+# # uncomment to test a forward pass
 # from graph_data_delphes import PFGraphDataset
 # from data_preprocessing import data_to_loader_ttbar
 # from data_preprocessing import data_to_loader_qcd
-#
+# 
 # full_dataset = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
 #
 # train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=2, n_valid=1, batch_size=2)
@@ -109,42 +123,5 @@ class PFNet7(nn.Module):
 # model = PFNet7()
 #
 # for batch in train_loader:
-#     # cand_ids, cand_p4, target_ids, target_p4, pf_id, pf_p4 = model(batch)
-#     # cand_ids
-#     print('Predicted PID:')
-#     print('Predicted p4:')
+#     pred_ids, pred_p4, target_ids, target_p4, cand_ids, cand_p4 = model(batch)
 #     break
-#
-#
-# batch.x[:,5:9]
-#
-# c=0
-# for i in range(len(batch.x)):
-#     if (batch.x[:,5][i] !=0) :
-#         if (batch.x[:,5][i]==batch.x[:,7][i]):
-#             if (batch.ygen_id[:,2][i]==1):
-#                 c=c+1
-#             else:
-#                 print(i)
-#
-#
-# c
-#
-# len(batch.x)
-#
-# len(batch.x)
-#
-#
-# batch.x[:,5][i]
-#
-#
-# batch.x[10666]
-# batch.x[10667]
-# batch.ygen_id[:,2]
-#
-#
-# batch.x[10356]
-#
-#
-#
-# batch.ygen_id[10356]

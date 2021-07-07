@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--hidden_dim_nn1", type=int, default=64, help="hidden dimension")
     parser.add_argument("--input_encoding", type=int, default=12, help="use an input encoding layer")
     parser.add_argument("--encoding_dim", type=int, default=64, help="encoded element dimension")
+    parser.add_argument("--embedding_dim", type=int, default=3, help="embedding dimension of the type feature")
     parser.add_argument("--batch_size", type=int, default=1, help="Number of .pt files to load in parallel")
     parser.add_argument("--model", type=str, help="type of model to use", default="PFNet7")
     parser.add_argument("--target", type=str, choices=["cand", "gen"], help="Regress to PFCandidates or GenParticles", default="gen")
@@ -40,8 +41,9 @@ def parse_args():
     parser.add_argument("--classification_only", action=BoolArg, default=False, help="Check to train for classification only (no regression)")
     parser.add_argument("--regression_only", action=BoolArg, default=False, help="Check to train for regression only (no classification)")
     parser.add_argument("--nn1", action=BoolArg, default=True, help="Adds an encoder/decoder step before gravnet..")
-    parser.add_argument("--conv2", action=BoolArg, default=True, help="Adds an extra GConv after gravnet..")
     parser.add_argument("--nn3", action=BoolArg, default=True, help="Adds the network to regress p4..")
+    parser.add_argument("--nn0track", action=BoolArg, default=True, help="Adds an initial network that encode the tracks..")
+    parser.add_argument("--nn0cluster", action=BoolArg, default=True, help="Adds an initial network that encode the clusters..")
     parser.add_argument("--title", type=str, default='', help="Appends this title to the model's name")
 
     parser.add_argument("--explain", action=BoolArg, default=False, help="Runs LRP for interpreting the GNN..")

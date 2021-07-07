@@ -29,6 +29,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits
 import mplhep as hep
+
 plt.style.use(hep.style.ROOT)
 
 elem_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -418,6 +419,9 @@ def draw_efficiency_fakerate(ygen, ypred, ycand, pid, var, bins, both=True, lege
         #plt.yscale("log")
         ax2.set_xlabel(var_names[var])
         ax2.set_ylabel("Fake rate")
+
+    plt.close(fig)
+
     return ax1, ax2
 
 def get_eff(ygen, ypred, ycand):
