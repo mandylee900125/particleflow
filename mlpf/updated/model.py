@@ -149,7 +149,7 @@ class PFNet7(nn.Module):
             # embed the "type" feature
             embedding = nn.Embedding(self.embedding_dim, 1)
 
-            add = embedding(x0[:,0].long()).reshape(-1,1)
+            add = embedding(x0[:,0].long().to(self.device)).reshape(-1,1)
             x0=torch.cat([add,x0[:,1:]], axis=1)
 
         # Encoder/Decoder step
