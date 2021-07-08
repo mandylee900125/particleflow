@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--input_encoding", type=int, default=12, help="use an input encoding layer")
     parser.add_argument("--encoding_dim", type=int, default=64, help="encoded element dimension")
     parser.add_argument("--embedding_dim", type=int, default=3, help="embedding dimension of the type feature")
+    parser.add_argument("--encoding_of_clusters", action=BoolArg, default=True, help="Trains an MLP to encode clusters")
     parser.add_argument("--batch_size", type=int, default=1, help="Number of .pt files to load in parallel")
     parser.add_argument("--model", type=str, help="type of model to use", default="PFNet7")
     parser.add_argument("--target", type=str, choices=["cand", "gen"], help="Regress to PFCandidates or GenParticles", default="gen")

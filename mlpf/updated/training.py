@@ -313,13 +313,13 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 2, 'patience': 100, 'hidden_dim': 256, 'hidden_dim_nn1': 64, 'input_encoding': 12, 'encoding_dim': 64, 'embedding_dim': 3,
+    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 2, 'patience': 100, 'hidden_dim': 256, 'hidden_dim_nn1': 64, 'input_encoding': 12, 'encoding_dim': 64,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4,
     # 'space_dim': 4, 'propagate_dimensions': 22, 'nearest': 16, 'overwrite': True,
     # 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_noskip_nn1_nn3',
-    # 'classification_only': False, 'nn1': True, 'nn3': True,'nn0track': True, 'nn0cluster': True, 'title': '',
-    # 'make_predictions_train': True, 'make_plots_train': False, 'make_predictions_valid': True, 'make_plots_valid': False, 'make_predictions_test': True, 'make_plots_test': False})
+    # 'classification_only': True, 'nn1': True, 'nn3': False, 'encoding_of_clusters': False, 'embedding_dim': 0, 'nn0track': False, 'nn0cluster': False, 'title': '',
+    # 'make_predictions_train': True, 'make_plots_train': True, 'make_predictions_valid': True, 'make_plots_valid': True, 'make_predictions_test': True, 'make_plots_test': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -349,6 +349,7 @@ if __name__ == "__main__":
                     'input_encoding': args.input_encoding,
                     'encoding_dim': args.encoding_dim,
                     'embedding_dim': args.embedding_dim,
+                    'encoding_of_clusters': args.encoding_of_clusters,
                     'output_dim_id': output_dim_id,
                     'output_dim_p4': output_dim_p4,
                     'space_dim': args.space_dim,
