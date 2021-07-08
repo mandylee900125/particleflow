@@ -213,13 +213,12 @@ def plot_all_distributions(true_id, true_p4, pred_id, pred_p4, pf_id, cand_p4, t
     cphi_true = true_p4[msk, 4].flatten().detach().numpy()
     cphi_pred = pred_p4[msk, 4].flatten().detach().numpy()
 
-    figure = plot_distribution(ch_true, ch_pred, "charge", np.linspace(0, 5, 100), target, fname = outpath+'distribution_plots/charge_distribution')
-    figure = plot_distribution(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'distribution_plots/pt_distribution')
-    figure = plot_distribution(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = outpath+'distribution_plots/energy_distribution')
-    figure = plot_distribution(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = outpath+'distribution_plots/eta_distribution')
-    figure = plot_distribution(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = outpath+'distribution_plots/sphi_distribution')
-    figure = plot_distribution(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = outpath+'distribution_plots/cphi_distribution')
-
+    figure = plot_distribution(ch_true, ch_pred, "charge", np.linspace(0, 5, 100), target, fname = outpath+'/distribution_plots/charge_distribution')
+    figure = plot_distribution(pt_true, pt_pred, "pt", np.linspace(0, 5, 100), target, fname = outpath+'/distribution_plots/pt_distribution')
+    figure = plot_distribution(e_true, e_pred, "E", np.linspace(-1, 5, 100), target, fname = outpath+'/distribution_plots/energy_distribution')
+    figure = plot_distribution(eta_true, eta_pred, "eta", np.linspace(-5, 5, 100), target, fname = outpath+'/distribution_plots/eta_distribution')
+    figure = plot_distribution(sphi_true, sphi_pred, "sin phi", np.linspace(-2, 2, 100), target, fname = outpath+'/distribution_plots/sphi_distribution')
+    figure = plot_distribution(cphi_true, cphi_pred, "cos phi", np.linspace(-2, 2, 100), target, fname = outpath+'/distribution_plots/cphi_distribution')
 
 def midpoints(x):
     return x[:-1] + np.diff(x)/2
@@ -351,7 +350,7 @@ def plot_num_particles_pid(list, key, ax=None, legend_title=""):
     ax.set_ylabel("Reconstructed particles / event")
     plt.title("Particle multiplicity")
 
-def draw_efficiency_fakerate(ygen, ypred, ycand, pid, var, bins, both=True, legend_title=""):
+def draw_efficiency_fakerate(ygen, ypred, ycand, pid, var, bins, outpath, both=True, legend_title=""):
     var_idx = var_indices[var]
 
     msk_gen = ygen[:, 0]==pid
@@ -420,6 +419,7 @@ def draw_efficiency_fakerate(ygen, ypred, ycand, pid, var, bins, both=True, lege
         ax2.set_xlabel(var_names[var])
         ax2.set_ylabel("Fake rate")
 
+    plt.savefig(outpath, bbox_inches="tight")
     plt.close(fig)
 
     return ax1, ax2

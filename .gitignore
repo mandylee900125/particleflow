@@ -20,3 +20,5 @@ prp
 
 mlpf/updated/LRP/pid*
 mlpf/updated/LRP/class*
+
+*.ipynb_checkpoints

@@ -31,9 +31,9 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
     parser.add_argument("--alpha", type=float, default=2e-4, help="Loss multiplier for pdg-id classification.. recall: loss = clf + alpha*reg")
     parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate")
-    parser.add_argument("--space_dim", type=int, default=8, help="Spatial dimension for clustering in gravnet layer")
+    parser.add_argument("--space_dim", type=int, default=4, help="Spatial dimension for clustering in gravnet layer")
     parser.add_argument("--propagate_dimensions", type=int, default=22, help="The number of features to be propagated between the vertices")
-    parser.add_argument("--nearest", type=int, default=40, help="k nearest neighbors in gravnet layer")
+    parser.add_argument("--nearest", type=int, default=16, help="k nearest neighbors in gravnet layer")
     parser.add_argument("--overwrite", action=BoolArg, default=False, help="Overwrites the model if True")
     parser.add_argument("--load", action=BoolArg, default=False, help="Load the model (no training)")
     parser.add_argument("--load_model", type=str, help="Which model to load", default="/PFNet7_cand_ntrain_2")
@@ -49,9 +49,13 @@ def parse_args():
 
     parser.add_argument("--explain", action=BoolArg, default=False, help="Runs LRP for interpreting the GNN..")
 
-    # for evaluation
-    parser.add_argument("--evaluate", action=BoolArg, default=True, help="Evaluate the model")
-    parser.add_argument("--evaluate_on_cpu", action=BoolArg, default=False, help="Check to evaluate on cpu")
+    # for mevaluation: making predictions & making plots
+    parser.add_argument("--make_predictions_train", action=BoolArg, default=True, help="make predictions on training data..")
+    parser.add_argument("--make_predictions_valid", action=BoolArg, default=True, help="make predictions on validation data..")
+    parser.add_argument("--make_predictions_test", action=BoolArg, default=True, help="make predictions on testing data..")
+    parser.add_argument("--make_plots_train", action=BoolArg, default=True, help="make plots on training data..")
+    parser.add_argument("--make_plots_valid", action=BoolArg, default=True, help="make plots on validation data..")
+    parser.add_argument("--make_plots_test", action=BoolArg, default=True, help="make plots on testing data..")
 
     args = parser.parse_args()
 

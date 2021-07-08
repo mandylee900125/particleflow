@@ -54,7 +54,7 @@ from args import parse_args
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 import evaluate
-from evaluate import Evaluate
+from evaluate import make_plots, make_predictions
 from plot_utils import plot_confusion_matrix
 from model_dnn import PFNet7
 
@@ -127,6 +127,9 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
     #setup confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
 
+    # to compute average inference time
+    t=[]
+
     for i, batch in enumerate(loader):
         t0 = time.time()
 
@@ -145,20 +148,26 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
         #     X.ygen_id=new_ygen_id
 
         # Forwardprop
-        cand_ids_one_hot, cand_p4, target_ids_one_hot, target_p4, pf_ids_one_hot, pf_p4 = model(X)
+        if i<10:
+            ti = time.time()
+            pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
+            tf = time.time()
+            t.append(round((tf-ti),2))
+        else:
+            pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
 
-        _, cand_ids = torch.max(cand_ids_one_hot, -1)
-        _, target_ids = torch.max(target_ids_one_hot, -1)
-        _, pf_ids = torch.max(pf_ids_one_hot, -1)     # rule-based result
+        _, gen_ids = torch.max(gen_ids_one_hot, -1)
+        _, pred_ids = torch.max(pred_ids_one_hot, -1)
+        _, cand_ids = torch.max(cand_ids_one_hot, -1)     # rule-based result
 
         # masking
-        msk = ((cand_ids != 0) & (target_ids != 0))
-        msk2 = ((cand_ids != 0) & (cand_ids == target_ids))
+        msk = ((pred_ids != 0) & (gen_ids != 0))
+        msk2 = ((pred_ids != 0) & (pred_ids == gen_ids))
 
         # computing loss
-        weights = compute_weights(torch.max(target_ids_one_hot,-1)[1], device)
-        l1 = torch.nn.functional.cross_entropy(cand_ids_one_hot, target_ids, weight=weights) # for classifying PID
-        l2 = alpha * torch.nn.functional.mse_loss(cand_p4[msk2], target_p4[msk2])  # for regressing p4
+        weights = compute_weights(torch.max(gen_ids_one_hot,-1)[1], device)
+        l1 = torch.nn.functional.cross_entropy(pred_ids_one_hot, gen_ids, weight=weights) # for classifying PID
+        l2 = alpha * torch.nn.functional.mse_loss(pred_p4[msk2], gen_p4[msk2])  # for regressing p4
 
         if args.classification_only:
             loss = l1
@@ -182,13 +191,15 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
 
         t1 = time.time()
 
-        accuracies_batch.append(accuracy_score(target_ids.detach().cpu().numpy(), cand_ids.detach().cpu().numpy()))
-        accuracies_batch_msk.append(accuracy_score(target_ids[msk].detach().cpu().numpy(), cand_ids[msk].detach().cpu().numpy()))
+        accuracies_batch.append(accuracy_score(gen_ids.detach().cpu().numpy(), pred_ids.detach().cpu().numpy()))
+        accuracies_batch_msk.append(accuracy_score(gen_ids[msk].detach().cpu().numpy(), pred_ids[msk].detach().cpu().numpy()))
 
-        conf_matrix += sklearn.metrics.confusion_matrix(target_ids.detach().cpu().numpy(),
-                                        np.argmax(cand_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
+        conf_matrix += sklearn.metrics.confusion_matrix(gen_ids.detach().cpu().numpy(),
+                                        np.argmax(pred_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
 
-        # print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
+        print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
+
+    print("Average Inference time is: ", round((sum(t) / len(t)),2), 'min')
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
@@ -300,12 +311,13 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 1, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 1, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
-    # 'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
-    # 'load': True, 'load_epoch': 1, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_2_batch_size_1_lr_0.001_alpha_0.0002_both_noskip_nn1_nn3',
-    # 'evaluate': True, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'nn3': True, 'nn4': True, 'title': 'dnn'})
+    # 'space_dim': 4, 'propagate_dimensions': 22, 'nearest': 16, 'overwrite': True,
+    # 'load': True, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4',
+    # 'classification_only': False, 'nn1': True, 'nn3': True, 'nn4': True, 'title': 'dnn',
+    # 'make_predictions_train': True, 'make_plots_train': True, 'make_predictions_valid': True, 'make_plots_valid': True, 'make_predictions_test': True, 'make_plots_test': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -387,8 +399,6 @@ if __name__ == "__main__":
             args.title=args.title+'_nn3'
         if args.nn4:
             args.title=args.title+'_nn4'
-        if args.conv2:
-            args.title=args.title+'_conv2'
 
         if args.classification_only:
             model_fname = get_model_fname(args.dataset, model, args.n_train, args.n_epochs, args.lr, args.target, args.batch_size, args.alpha, "clf", args.title)
@@ -425,46 +435,64 @@ if __name__ == "__main__":
 
         model.train()
         train_loop()
-
-        # evaluate on training data..
-        os.makedirs(outpath+'/train_loader')
-        os.makedirs(outpath+'/train_loader/resolution_plots')
-        os.makedirs(outpath+'/train_loader/distribution_plots')
-        os.makedirs(outpath+'/train_loader/multiplicity_plots')
-        os.makedirs(outpath+'/train_loader/efficiency_plots')
-        Evaluate(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs, which_data="training data")
-
-        # evaluate on validation data..
-        os.makedirs(outpath+'/valid_loader')
-        os.makedirs(outpath+'/valid_loader/resolution_plots')
-        os.makedirs(outpath+'/valid_loader/distribution_plots')
-        os.makedirs(outpath+'/valid_loader/multiplicity_plots')
-        os.makedirs(outpath+'/valid_loader/efficiency_plots')
-        Evaluate(model, valid_loader, outpath+'/valid_loader', args.target, device, args.n_epochs, which_data="validation data")
-
-    # evaluate the model on test data
-    if args.evaluate:
-        if args.evaluate_on_cpu:
-            device = "cpu"
-
-        model = model.to(device)
         model.eval()
 
-        if osp.isdir(outpath+'/test_loader'):
-            import shutil
-            shutil.rmtree(outpath+'/test_loader')
+    # evaluate on training data..
+    if not osp.isdir(outpath+'/train_loader'):
+        os.makedirs(outpath+'/train_loader')
+    if not osp.isdir(outpath+'/train_loader/resolution_plots'):
+        os.makedirs(outpath+'/train_loader/resolution_plots')
+    if not osp.isdir(outpath+'/train_loader/distribution_plots'):
+        os.makedirs(outpath+'/train_loader/distribution_plots')
+    if not osp.isdir(outpath+'/train_loader/multiplicity_plots'):
+        os.makedirs(outpath+'/train_loader/multiplicity_plots')
+    if not osp.isdir(outpath+'/train_loader/efficiency_plots'):
+        os.makedirs(outpath+'/train_loader/efficiency_plots')
+
+    if args.make_predictions_train:
+        make_predictions(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs, which_data="training data")
+    if args.make_plots_train:
+        make_plots(model, train_loader, outpath+'/train_loader', args.target, device, args.n_epochs, which_data="training data")
+
+    # evaluate on validation data..
+    if not osp.isdir(outpath+'/valid_loader'):
+        os.makedirs(outpath+'/valid_loader')
+    if not osp.isdir(outpath+'/valid_loader/resolution_plots'):
+        os.makedirs(outpath+'/valid_loader/resolution_plots')
+    if not osp.isdir(outpath+'/valid_loader/distribution_plots'):
+        os.makedirs(outpath+'/valid_loader/distribution_plots')
+    if not osp.isdir(outpath+'/valid_loader/multiplicity_plots'):
+        os.makedirs(outpath+'/valid_loader/multiplicity_plots')
+    if not osp.isdir(outpath+'/valid_loader/efficiency_plots'):
+        os.makedirs(outpath+'/valid_loader/efficiency_plots')
+
+    if args.make_predictions_valid:
+        make_predictions(model, valid_loader, outpath+'/valid_loader', args.target, device, args.n_epochs, which_data="validation data")
+    if args.make_plots_valid:
+        make_plots(model, valid_loader, outpath+'/valid_loader', args.target, device, args.n_epochs, which_data="validation data")
+
+    # evaluate on testing data..
+    if not osp.isdir(outpath+'/test_loader'):
         os.makedirs(outpath+'/test_loader')
+    if not osp.isdir(outpath+'/test_loader/resolution_plots'):
         os.makedirs(outpath+'/test_loader/resolution_plots')
+    if not osp.isdir(outpath+'/test_loader/distribution_plots'):
         os.makedirs(outpath+'/test_loader/distribution_plots')
+    if not osp.isdir(outpath+'/test_loader/multiplicity_plots'):
         os.makedirs(outpath+'/test_loader/multiplicity_plots')
+    if not osp.isdir(outpath+'/test_loader/efficiency_plots'):
         os.makedirs(outpath+'/test_loader/efficiency_plots')
 
-        if args.load & args.train:
-            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch+args.n_epochs, which_data="testing data")
-        elif args.load:
-            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch, which_data="testing data")
-        elif args.train:
-            Evaluate(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs, which_data="testing data")
+    if args.make_predictions_test:
+        if args.load:
+            make_predictions(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch, which_data="testing data")
+        else:
+            make_predictions(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs, which_data="testing data")
+    if args.make_plots_test:
+        if args.load:
+            make_plots(model, test_loader, outpath+'/test_loader', args.target, device, args.load_epoch, which_data="testing data")
+        else:
+            make_plots(model, test_loader, outpath+'/test_loader', args.target, device, args.n_epochs, which_data="testing data")
 
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
