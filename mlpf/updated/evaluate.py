@@ -57,6 +57,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     cand_list = {"null":[], "chhadron":[], "nhadron":[], "photon":[], "electron":[], "muon":[]}
 
     print('Making predictions on ' + which_data)
+    t0=time.time()
 
     for i, batch in enumerate(test_loader):
         if multi_gpu:
@@ -102,6 +103,9 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
         cand_ids_all.append(cand_ids_one_hot.detach().cpu())
         cand_p4_all.append(cand_p4.detach().cpu())
 
+    t1=time.time()
+    print('Time taken to make predictions is:', round((t1-t0),2), 'min')
+
     # store the 3 list dictionaries in a list (this is done only to compute the particle multiplicity plots)
     list = [pred_list, gen_list, cand_list]
     with open(path + '/list_for_multiplicities.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
@@ -142,6 +146,7 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     ycand = predictions["ycand"].reshape(-1,7)
 
     print('Making plots on ' + which_data)
+    t0=time.time()
 
     # make confusion matrix
     conf_matrix_norm = sklearn.metrics.confusion_matrix(torch.max(gen_ids, -1)[1],
@@ -311,3 +316,6 @@ def Evaluate(model, test_loader, path, target, device, epoch, which_data):
     plt.savefig(outpath+"resolution_plots/res_pid5_energy.png", bbox_inches="tight")
     plt.tight_layout()
     plt.close(fig)
+
+    t1=time.time()
+    print('Time taken to make plots is:', round((t1-t0),2), 'min')
