@@ -21,8 +21,7 @@ from torch_geometric.nn import GraphConv
 
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
-multi_gpu=False
-use_gpu=True
+
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
@@ -128,6 +127,7 @@ if multi_gpu:
     model = torch_geometric.nn.DataParallel(model)
 
 model.to(device)
+print(model)
 
 T=[]
 for i, batch in enumerate(train_loader):
