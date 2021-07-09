@@ -142,7 +142,7 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
         ti = time.time()
         pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
         tf = time.time()
-        t.append(round((tf-ti)/60),2))
+        t.append(round((tf-ti)/60,2))
 
         _, gen_ids = torch.max(gen_ids_one_hot, -1)
         _, pred_ids = torch.max(pred_ids_one_hot, -1)
