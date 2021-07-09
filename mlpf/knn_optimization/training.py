@@ -177,7 +177,7 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
                                         np.argmax(pred_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
 
         print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
-        print('Average inference time: ', round(t.sum()/len(t),2), 'min')
+        print('Average inference time: ', round(sum(t)/len(t),2), 'min')
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
