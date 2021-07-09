@@ -122,8 +122,6 @@ class PFNet7(nn.Module):
                 self.elu(),
                 nn.Linear(hidden_dim, hidden_dim),
                 self.elu(),
-                # nn.Linear(hidden_dim, hidden_dim),
-                # self.elu(),
                 nn.Linear(hidden_dim, output_dim_p4),
             )
 
@@ -169,7 +167,7 @@ class PFNet7(nn.Module):
             nn3_input = torch.cat([x, pred_ids, x0], axis=-1)
             pred_p4 = self.nn3(nn3_input)
         else:
-            pred_p4=torch.zeros_like(data.ycand)
+            pred_p4 = torch.zeros_like(data.ycand)
 
         return pred_ids, pred_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
