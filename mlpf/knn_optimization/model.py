@@ -21,7 +21,8 @@ from torch_geometric.nn import GraphConv
 
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
-
+multi_gpu=False
+use_gpu=True
 try:
     if not ("CUDA_VISIBLE_DEVICES" in os.environ):
         import setGPU
@@ -112,15 +113,18 @@ from graph_data_delphes import PFGraphDataset
 from data_preprocessing import data_to_loader_ttbar
 from data_preprocessing import data_to_loader_qcd
 
+# get the dataset
 full_dataset_ttbar = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
 full_dataset_qcd = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_qcd')
 
+# make data loaders
 train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, n_train=1, n_valid=1, batch_size=2)
 test_loader = data_to_loader_qcd(full_dataset_qcd, n_test=1, batch_size=2)
 
+# instantiate a model
 model = PFNet7()
 if multi_gpu:
-    print("Parallelizing the training..")
+    print("Parallelizing the inference..")
     model = torch_geometric.nn.DataParallel(model)
 
 model.to(device)
