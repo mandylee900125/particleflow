@@ -128,6 +128,8 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
     #setup confusion matrix
     conf_matrix = np.zeros((output_dim_id, output_dim_id))
 
+    # average time taken per inference over the whole event
+    t = []
     for i, batch in enumerate(loader):
         t0 = time.time()
 
@@ -137,7 +139,10 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
             X = batch.to(device)
 
         # Forwardprop
+        ti = time.time()
         pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
+        tf = time.time()
+        t.append(round((tf-ti)/60),2))
 
         _, gen_ids = torch.max(gen_ids_one_hot, -1)
         _, pred_ids = torch.max(pred_ids_one_hot, -1)
@@ -172,6 +177,7 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
                                         np.argmax(pred_ids_one_hot.detach().cpu().numpy(),axis=1), labels=range(6))
 
         print('{}/{} batch_loss={:.2f} dt={:.1f}s'.format(i, len(loader), loss.item(), t1-t0), end='\r', flush=True)
+        print('Average inference time: ', round(t.sum()/len(t),2), 'min')
 
     losses_1 = np.mean(losses_1)
     losses_2 = np.mean(losses_2)
@@ -226,10 +232,9 @@ def train_loop():
         time_per_epoch = (t1 - t0_initial)/(epoch + 1)
         eta = epochs_remaining*time_per_epoch/60
 
-        print("epoch={}/{} dt={:.2f}min train_loss={:.5f} valid_loss={:.5f} train_acc={:.5f} valid_acc={:.5f} train_acc_msk={:.5f} valid_acc_msk={:.5f} eta={:.1f}m".format(
+        print("epoch={}/{} epoch_training_time={:.2f}min eta={:.1f}m".format(
             epoch+1, args.n_epochs,
-            (t1-t0)/60, losses_tot_train[epoch], losses_tot_valid[epoch], accuracies_train[epoch], accuracies_valid[epoch],
-            accuracies_msk_train[epoch], accuracies_msk_valid[epoch], eta))
+            (t1-t0)/60, eta))
 
         torch.save(model.state_dict(), "{0}/epoch_{1}_weights.pth".format(outpath, epoch))
 
