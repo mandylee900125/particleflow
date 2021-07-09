@@ -59,30 +59,22 @@ def data_to_loader_qcd(full_dataset, n_test, batch_size):
     return test_loader
 
 #----------------------------------------------------------------------------------------
-# from graph_data_delphes import PFGraphDataset, one_hot_embedding
-# # the next part initializes some args values (to run the script not from terminal)
-# class objectview(object):
-#     def __init__(self, d):
-#         self.__dict__ = d
+# from graph_data_delphes import PFGraphDataset
+# from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 #
-# args = objectview({'train': True, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 1, 'patience': 100, 'hidden_dim':32, 'encoding_dim': 256,
-# 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
-# 'outpath': '../../test_tmp_delphes/experiments/', 'activation': 'leaky_relu', 'optimizer': 'adam', 'lr': 1e-4, 'l1': 1, 'l2': 0.001, 'l3': 1, 'dropout': 0.5,
-# 'radius': 0.1, 'convlayer': 'gravnet-knn', 'convlayer2': 'none', 'space_dim': 2, 'nearest': 3, 'overwrite': True,
-# 'input_encoding': 0, 'load': False, 'load_epoch': 0, 'load_model': 'PFNet7_cand_ntrain_3_nepochs_1', 'evaluate': True, 'evaluate_on_cpu': True})
+# # get the dataset
+# full_dataset_ttbar = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
+# full_dataset_qcd = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_qcd')
 #
-# full_dataset = PFGraphDataset(args.dataset)
-# full_dataset_qcd = PFGraphDataset(args.dataset_qcd)
-#
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, args.n_train, args.n_valid, batch_size=args.batch_size)
-# test_loader = data_to_loader_qcd(full_dataset_qcd, args.n_test, batch_size=args.batch_size)
-#
+# # make data loaders
+# train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, n_train=1, n_valid=1, batch_size=2)
+# test_loader = data_to_loader_qcd(full_dataset_qcd, n_test=1, batch_size=2)
+
 # for batch in train_loader:
 #     break
 #
 # batch
 # len(train_loader)
-#
 #
 # # if multigpu: a "Batch" of size 3 is given by: [Data(x=[5k, 12], ycand=[5k, 6], ...) , Data(x=[5k, 12], ...), Data(x=[5k, 12], ...)]
 # # then when we pass it to the model, DP takes care of converting it into batches like this (for 2 gpus):

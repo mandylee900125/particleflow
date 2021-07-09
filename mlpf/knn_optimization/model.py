@@ -109,8 +109,7 @@ class PFNet7(nn.Module):
 # # -------------------------------------------------------------------------------------
 # testing inference of a forward pass
 from graph_data_delphes import PFGraphDataset
-from data_preprocessing import data_to_loader_ttbar
-from data_preprocessing import data_to_loader_qcd
+from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 
 # get the dataset
 full_dataset_ttbar = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
