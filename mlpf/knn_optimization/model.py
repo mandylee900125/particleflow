@@ -119,6 +119,10 @@ train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, n_train=1,
 test_loader = data_to_loader_qcd(full_dataset_qcd, n_test=1, batch_size=2)
 
 model = PFNet7()
+if multi_gpu:
+    print("Parallelizing the training..")
+    model = torch_geometric.nn.DataParallel(model)
+
 model.to(device)
 
 T=[]
