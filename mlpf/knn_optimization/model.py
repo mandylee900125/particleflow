@@ -1,5 +1,5 @@
 import numpy as np
-import mplhep
+import mplhep, time
 
 import torch
 import torch_geometric
@@ -107,21 +107,30 @@ class PFNet7(nn.Module):
         return pred_ids, pred_p4, data.ygen_id, data.ygen, data.ycand_id, data.ycand
 
 # # -------------------------------------------------------------------------------------
-# # uncomment to test a forward pass
-# from graph_data_delphes import PFGraphDataset
-# from data_preprocessing import data_to_loader_ttbar
-# from data_preprocessing import data_to_loader_qcd
-#
-# full_dataset_ttbar = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
-# full_dataset_qcd = PFGraphDataset('../../test_tmp_delphes/data/pythia8_qcd')
-#
-# train_loader, valid_loader = data_to_loader_ttbar(full_dataset, n_train=1, n_valid=1, batch_size=2)
-# test_loader = data_to_loader_qcd(full_dataset, n_test=1, batch_size=2)
-#
-# model = PFNet7()
-# model.to(device)
-#
-# for batch in train_loader:
-#     X = batch.to(device)
-#     pred_ids, pred_p4, gen_ids, gen_p4, cand_ids, cand_p4 = model(X)
-#     break
+# testing inference of a forward pass
+from graph_data_delphes import PFGraphDataset
+from data_preprocessing import data_to_loader_ttbar
+from data_preprocessing import data_to_loader_qcd
+
+full_dataset_ttbar = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
+full_dataset_qcd = PFGraphDataset('../../test_tmp_delphes/data/pythia8_qcd')
+
+train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, n_train=1, n_valid=1, batch_size=2)
+test_loader = data_to_loader_qcd(full_dataset_qcd, n_test=1, batch_size=2)
+
+model = PFNet7()
+model.to(device)
+
+T=[]
+for batch in train_loader:
+    if multi_gpu:
+        X = batch
+    else:
+        X = batch.to(device)
+
+    t0 = time.time()
+    pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
+    t1 = time.time()
+    T.append(round((t1-t0),5))
+
+print('Average inference time per event: ', round(sum(T)/len(T),5), 's')
