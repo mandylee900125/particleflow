@@ -102,7 +102,7 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
         cand_p4_all.append(cand_p4.detach().cpu())
 
     t1=time.time()
-    print('Time taken to make predictions is:', round((t1-t0),2), 'min')
+    print('Time taken to make predictions is:', round(((t1-t0)/60),2), 'min')
 
     # store the 3 list dictionaries in a list (this is done only to compute the particle multiplicity plots)
     list = [pred_list, gen_list, cand_list]
@@ -347,4 +347,4 @@ def make_plots(model, test_loader, outpath, target, device, epoch, which_data):
     plt.close(fig)
 
     t1=time.time()
-    print('Time taken to make plots is:', round((t1-t0),2), 'min')
+    print('Time taken to make plots is:', round(((t1-t0)/60),2), 'min')
