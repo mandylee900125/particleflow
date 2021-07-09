@@ -12,9 +12,9 @@ def parse_args():
     parser.add_argument("--num-proc", type=int, default=24, help="number of processes")
 
     # for training
-    parser.add_argument("--n_train", type=int, default=3, help="number of data files to use for training.. each file contains 100 events")
+    parser.add_argument("--n_train", type=int, default=1, help="number of data files to use for training.. each file contains 100 events")
     parser.add_argument("--n_valid", type=int, default=1, help="number of data files to use for validation.. each file contains 100 events")
-    parser.add_argument("--n_test", type=int, default=2, help="number of data files to use for testing.. each file contains 100 events")
+    parser.add_argument("--n_test", type=int, default=1, help="number of data files to use for testing.. each file contains 100 events")
     parser.add_argument("--n_epochs", type=int, default=1, help="number of training epochs")
     parser.add_argument("--hidden_dim", type=int, default=256, help="hidden dimension")
     parser.add_argument("--hidden_dim_nn1", type=int, default=64, help="hidden dimension")
@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument("--space_dim", type=int, default=4, help="Spatial dimension for clustering in gravnet layer")
     parser.add_argument("--propagate_dimensions", type=int, default=22, help="The number of features to be propagated between the vertices")
     parser.add_argument("--nearest", type=int, default=16, help="k nearest neighbors in gravnet layer")
-    parser.add_argument("--overwrite", action=BoolArg, default=False, help="Overwrites the model if True")
+    parser.add_argument("--overwrite", action=BoolArg, default=True, help="Overwrites the model if True")
     parser.add_argument("--title", type=str, default='', help="Appends this title to the model's name")
 
     args = parser.parse_args()
