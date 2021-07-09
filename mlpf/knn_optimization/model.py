@@ -17,7 +17,7 @@ from torch.utils.data import random_split
 
 #from torch_geometric.nn import GravNetConv         # if you want to get it from source code (won't be able to retrieve the adjacency matrix)
 from gravnet import GravNetConv
-
+import torch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
 
