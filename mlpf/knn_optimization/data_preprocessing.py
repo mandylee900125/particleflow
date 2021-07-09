@@ -5,12 +5,6 @@ from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
 
-#define the global base device
-if use_gpu:
-    device = torch.device('cuda:0')
-else:
-    device = torch.device('cpu')
-
 # if not multigpu we have to pass batches that are stacked as "batch.type() = Batch" (not list) so that pytorch can access attributes like ygen_id through batch.ygen_id
 # if multigpu we have to pass list of "Data" elements.. then behind the scene, pytorch DP will convert the list to appropriate Batches to fit on the gpus available so that batch.ygen_id works out of the box
 
