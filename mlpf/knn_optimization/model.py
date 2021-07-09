@@ -130,7 +130,7 @@ if multi_gpu:
 model.to(device)
 
 T=[]
-for batch in train_loader:
+for i, batch in enumerate(train_loader):
     if multi_gpu:
         X = batch
     else:
@@ -140,5 +140,8 @@ for batch in train_loader:
     pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
     t1 = time.time()
     T.append(round((t1-t0),5))
+
+    if i==10:
+        break
 
 print('Average inference time per event: ', round(sum(T)/len(T),5), 's')
