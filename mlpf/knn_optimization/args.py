@@ -5,8 +5,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     # from raw -> processed
-    parser.add_argument("--dataset", type=str, default='../../../test_tmp_delphes/data/pythia8_ttbar', help="dataset path", required=True)
-    parser.add_argument("--dataset_qcd", type=str, default='../../../test_tmp_delphes/data/pythia8_qcd', help="dataset path", required=True)
+    parser.add_argument("--dataset", type=str, default='../../../test_tmp_delphes/data/pythia8_ttbar', help="dataset path", required=False)
+    parser.add_argument("--dataset_qcd", type=str, default='../../../test_tmp_delphes/data/pythia8_qcd', help="dataset path", required=False)
     parser.add_argument("--processed_dir", type=str, help="processed", required=False, default=None)
     parser.add_argument("--num-files-merge", type=int, default=10, help="number of files to merge")
     parser.add_argument("--num-proc", type=int, default=24, help="number of processes")
