@@ -112,8 +112,8 @@ from graph_data_delphes import PFGraphDataset
 from data_preprocessing import data_to_loader_ttbar
 from data_preprocessing import data_to_loader_qcd
 
-full_dataset_ttbar = PFGraphDataset('../../test_tmp_delphes/data/pythia8_ttbar')
-full_dataset_qcd = PFGraphDataset('../../test_tmp_delphes/data/pythia8_qcd')
+full_dataset_ttbar = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_ttbar')
+full_dataset_qcd = PFGraphDataset('../../../test_tmp_delphes/data/pythia8_qcd')
 
 train_loader, valid_loader = data_to_loader_ttbar(full_dataset_ttbar, n_train=1, n_valid=1, batch_size=2)
 test_loader = data_to_loader_qcd(full_dataset_qcd, n_test=1, batch_size=2)
