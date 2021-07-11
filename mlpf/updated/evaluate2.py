@@ -80,7 +80,9 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
             cand_ids_all = torch.cat([cand_ids_all,cand_ids])
             cand_p4_all = torch.cat([cand_p4,cand_p4])
 
-            print('event #', i)
+        print('event #: ', i)
+        if i==1000:
+            break
 
     t1=time.time()
     print('Time taken to make predictions is:', round(((t1-t0)/60),2), 'min')
