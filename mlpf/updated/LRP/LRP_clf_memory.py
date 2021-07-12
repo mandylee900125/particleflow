@@ -265,10 +265,10 @@ class LRP:
 
             if len(big_list)==0:
                 with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R{index}.pkl', 'wb') as f:
-                    cPickle.dump(R, f)
+                    cPickle.dump(R, f, protocol=4)
             else:
                 with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R{index}.pkl', 'wb') as f:
-                    cPickle.dump(big_list, f)
+                    cPickle.dump(big_list, f, protocol=4)
 
         print("Finished explaing all layers.")
 
