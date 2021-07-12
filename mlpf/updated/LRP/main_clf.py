@@ -55,7 +55,7 @@ from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 from model_LRP_clf import PFNet7
 
-from LRP_clf import LRP
+from LRP_clf_memory import LRP
 from model_io import model_io
 
 import networkx as nx
@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
             to_explain={"A":activation,"inputs":dict(x=X.x,
                                                 batch=X.batch),"y":gen_ids_one_hot,"R":dict(),"pred":pred_ids_one_hot,
-                                                "edge_index":edge_index, "edge_weight":edge_weight, "after_message":after_message, "before_message":before_message}
+                                                "edge_index":edge_index, "edge_weight":edge_weight, "after_message":after_message, "before_message":before_message, "outpath":args.outpath, "load_model":args.load_model}
 
             model.set_dest(to_explain["A"])
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
             # for each key:
             # R_before_gravnet: is one big tensor for all nodes.. the rows of the map represent nodes.. since nodes haven't talked to each other yet, the rows haven't mixed up yet
             # R_after_gravnet: is one big tensor for each node.. the rows have mixed up differently for each node, depending on its neighbours
-            R_before_gravnet, R_after_gravnet = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
+            explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
             with open(args.outpath+'/'+args.load_model+'/R_before_gravnet.pkl', 'wb') as f:
                 cPickle.dump(R_before_gravnet, f)

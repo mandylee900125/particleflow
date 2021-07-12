@@ -8,6 +8,8 @@ import model_io
 from torch_geometric.utils import to_scipy_sparse_matrix
 import scipy
 import pickle, math, time
+import _pickle as cPickle
+from sys import getsizeof
 
 from torch_geometric.data import Data
 import networkx as nx
@@ -41,12 +43,13 @@ class LRP:
         print('l1', layer)
 
         EPSILON=1e-9
-        a=copy_tensor(input)
-        a.retain_grad()
-        z = layer.forward(a)
+        # a=copy_tensor(input)
+        # a.retain_grad()
+
+        z = layer.forward(input)
 
         if activation_layer:
-            w = torch.eye(a.shape[1])
+            w = torch.eye(input.shape[1])
         else:
             w = layer.weight
 
@@ -58,8 +61,8 @@ class LRP:
                 W.append(w[i,:].reshape(1,-1))
                 I = torch.ones_like(R[:,i]).reshape(-1,1)
 
-                Numerator=(a*torch.matmul(T[i],W[i]))
-                Denominator=(a*torch.matmul(I,W[i])).sum(axis=1)
+                Numerator=(input*torch.matmul(T[i],W[i]))
+                Denominator=(input*torch.matmul(I,W[i])).sum(axis=1)
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 r.append(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
@@ -72,8 +75,8 @@ class LRP:
             for i in range(len(R)):
                 I = torch.ones_like(R[i])
 
-                Numerator=(a*torch.matmul(R[i],w))
-                Denominator=(a*torch.matmul(I,w)).sum(axis=1)
+                Numerator=(input*torch.matmul(R[i],w))
+                Denominator=(input*torch.matmul(I,w)).sum(axis=1)
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 R[i]=(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
@@ -88,14 +91,15 @@ class LRP:
     @staticmethod
     def eps_rule_before_gravnet(layer, input, R, index, output_layer, activation_layer):
 
-        EPSILON=1e-9
-        a=copy_tensor(input)
-        a.retain_grad()
-        z = layer.forward(a)
+        # EPSILON=1e-9
+        # a=copy_tensor(input)
+        # a.retain_grad()
+
+        # z = layer.forward(a)
         # basically layer.forward does this: output=(torch.matmul(a,torch.transpose(w,0,1))+b) , assuming the following w & b are retrieved
 
         if activation_layer:
-            w = torch.eye(a.shape[1])
+            w = torch.eye(input.shape[1])
         else:
             w = layer.weight
             b = layer.bias
@@ -116,16 +120,16 @@ class LRP:
         for output_node in range(len(R_list)):
             # rep stands for repeated
             # a_rep = a.reshape(a.shape[0],a.shape[1],1).repeat(1,1,R_list[output_node].shape[1])
-            a_rep = a.reshape(a.shape[0],a.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
-            a_rep = a.reshape(a.shape[0],a.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
+            a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
+            a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
             # wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(a.shape[0],1,1)
             # wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(a.shape[0],Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[1],Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2])
-            wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(a.shape[0],-1,-1)
+            wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(input.shape[0],-1,-1)
 
             H = a_rep*wt_rep
             # deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).repeat(1,a.shape[1],1).float()
             # deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).shape[0],a.shape[1],H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).shape[2]).float()
-            deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,a.shape[1],-1).float()
+            deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,input.shape[1],-1).float()
 
             G = H/deno
 
@@ -152,13 +156,12 @@ class LRP:
     @staticmethod
     def eps_rule_after_gravnet(layer, input, R, index, activation_layer):
 
-        EPSILON=1e-9
-        a=copy_tensor(input)
-        a.retain_grad()
-        # basically layer.forward does this: output=(torch.matmul(a,torch.transpose(w,0,1))+b) , assuming the following w & b are retrieved
+        # EPSILON=1e-9
+        # a=copy_tensor(input)
+        # a.retain_grad()
 
         if activation_layer:
-            w = torch.eye(a.shape[1])
+            w = torch.eye(input.shape[1])
         else:
             w = layer.weight
             b = layer.bias
@@ -170,47 +173,17 @@ class LRP:
         R_previous=[None]*len(R)
         for output_node in range(len(R)):
         # rep stands for repeated
-            # a_rep = a.reshape(1,a.shape[0],a.shape[1],1).repeat(R[output_node].shape[0],1,1,R[output_node].shape[2])
-            # a_rep = a.reshape(1,a.shape[0],a.shape[1],1).expand(R[output_node].shape[0],a.reshape(1,a.shape[0],a.shape[1],1).shape[1],a.reshape(1,a.shape[0],a.shape[1],1).shape[2],R[output_node].shape[2])
-            print('hey1')
-            t0=time.time()
-            a_rep = a.reshape(1,a.shape[0],a.shape[1],1).expand(R[output_node].shape[0],-1,-1,R[output_node].shape[2])
-            t1=time.time()
-            print('hey2', t1-t0)
 
-            # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(R[output_node].shape[0],a.shape[0],1,1)
-            # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[3])
-            t0=time.time()
-            wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],-1,-1)
-            t1=time.time()
-            print('hey3', t1-t0)
-
-            t0=time.time()
-            H = a_rep*wt_rep
-            t1=time.time()
-            print('hey4', t1-t0)
+            H = input.reshape(1,input.shape[0],input.shape[1],1).expand(R[output_node].shape[0],-1,-1,R[output_node].shape[2])*Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],input.shape[0],-1,-1)
 
             # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
             # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[0],H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[1],a.shape[1],H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[3]).float()
-            t0=time.time()
-            deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,a.shape[1],-1)
-            t1=time.time()
-            print('hey5', t1-t0)
+            deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,input.shape[1],-1)
 
-            t0=time.time()
             G = H/deno
-            t1=time.time()
-            print('hey6', t1-t0)
 
-            t0=time.time()
             R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1).float())
-            t1=time.time()
-            print('hey7', t1-t0)
-
-            t0=time.time()
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
-            t1=time.time()
-            print('hey8', t1-t0)
 
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
             break
@@ -228,20 +201,21 @@ class LRP:
         elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-1)):
             print('- R score is conserved up to relative tolerance 1e-1')
 
+        print('size of R_previous is: ', getsizeof(R_previous))
         return R_previous
 
     @staticmethod
     def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        b=Data()
-        b['edge_index']=edge_index
-        b['num_nodes']=edge_index[0].shape[0]
-        b['edge_weight']=edge_weight
-
-        G = to_networkx(b, edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
-
-        def nodes_connected(u, v):
-            return u in G.neighbors(v)
+        # b=Data()
+        # b['edge_index']=edge_index
+        # b['num_nodes']=edge_index[0].shape[0]
+        # b['edge_weight']=edge_weight
+        #
+        # G = to_networkx(b, edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
+        #
+        # def nodes_connected(u, v):
+        #     return u in G.neighbors(v)
 
         R_tensor_per_all_nodes=[None]*len(R)
         for output_node in range(len(R)):
@@ -281,31 +255,28 @@ class LRP:
                 signal=torch.tensor([1,0,0,0,0,0],dtype=torch.float32).to(device),
                 return_result:bool=False):
 
-        inputs=to_explain["inputs"]
-        pred=to_explain["pred"]
-        edge_index=to_explain["edge_index"]
-        edge_weight=to_explain["edge_weight"]
-        after_message=to_explain["after_message"]
-        before_message=to_explain["before_message"]
-
         start_index=self.model.n_layers                  ##########################
         print('Total number of layers (including activation layers):', start_index)
-        to_explain['R']["layer"+str(start_index)]=copy_tensor(pred)
 
         ### loop over each single layer
-        R=to_explain["R"]["layer"+str(start_index)]
         big_list=[]
-        BIG_LIST={}
         for index in range(start_index+1, 1,-1):
             print(f"Explaining layer {1+start_index+1-index}/{start_index+1-1}")
-            R, big_list  = self.explain_single_layer(R, to_explain, edge_index, edge_weight, after_message, before_message, big_list, start_index+1, index)
-            if len(big_list)!=0:
-                BIG_LIST["layer"+str(index-2)]=big_list
+            if index==start_index+1:
+                R, big_list  = self.explain_single_layer(to_explain["pred"], to_explain, big_list, start_index+1, index)
+            else:
+                R, big_list  = self.explain_single_layer(R, to_explain, big_list, start_index+1, index)
 
+            if len(big_list)==0:
+                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R{index}.pkl', 'wb') as f:
+                    cPickle.dump(R, f)
+            else:
+                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R{index}.pkl', 'wb') as f:
+                    cPickle.dump(big_list, f)
 
-        return to_explain['R'], BIG_LIST
+        print("Finished explaing all layers.")
 
-    def explain_single_layer(self, R, to_explain, edge_index, edge_weight, after_message, before_message, big_list, output_layer_index, index=None, name=None):
+    def explain_single_layer(self, R, to_explain, big_list, output_layer_index, index=None, name=None):
         # preparing variables required for computing LRP
         layer=self.model.get_layer(index=index,name=name)
 
@@ -323,17 +294,15 @@ class LRP:
 
         # it works out of the box that the conv1.lin_s layer which we don't care about is in the same place of the message passing.. so we can just replace its action
         if 'conv1.lin_s' in str(name):
-            big_list = self.message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index)
+            big_list = self.message_passing_rule(layer, input, R, big_list, to_explain["edge_index"], to_explain["edge_weight"], to_explain["after_message"], to_explain["before_message"], index)
             return R, big_list
 
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
                 R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=False)
-                to_explain["R"]["layer"+str(index-2)]=R
             elif 'LeakyReLU' or 'ELU' in str(layer):
                 R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True)
-                to_explain["R"]["layer"+str(index-2)]=R
         else:
             if 'Linear' in str(layer):
                 big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
