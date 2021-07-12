@@ -63,6 +63,7 @@ class LRP:
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 r.append(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
+
                 print('- Finished computing R-scores for output neuron #: ', i+1)
                 break
             print(f'- Completed layer: {layer}')
@@ -76,6 +77,7 @@ class LRP:
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 R[i]=(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
+
                 print('- Finished computing R-scores for output neuron #: ', i+1)
                 break
             print(f'- Completed layer: {layer}')
@@ -120,22 +122,9 @@ class LRP:
             deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).repeat(1,a.shape[1],1).float()
             G = H/deno
 
-            # S=H.reshape(1,H.shape[0],H.shape[1],H.shape[2])
-            # print('S', S.shape)
-            # print('S.sum(axis=2).shape[0]', S.sum(axis=2).shape)
-            # deno=S.sum(axis=2).reshape(S.sum(axis=2).shape[0],S.sum(axis=2).shape[1],1,S.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
-            # print('deno', deno.shape)
-            # G = S/deno
-
-            # # print('R_list[output_node]', R_list[output_node].shape)
-            # print('ss', R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).shape)
-            #
-            print('G', G.shape)
-            print('R[output_node]', R[output_node].shape)
-            # R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(1,R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
-            # R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0],R_previous[output_node].shape[1], R_previous[output_node].shape[2])
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1])
+
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
             break
 
@@ -174,20 +163,12 @@ class LRP:
         R_previous=[None]*len(R)
         for output_node in range(len(R)):
         # rep stands for repeated
-            print('here1')
             a_rep = a.reshape(1,a.shape[0],a.shape[1],1).repeat(R[output_node].shape[0],1,1,R[output_node].shape[2])
-            print('here2')
             wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(R[output_node].shape[0],a.shape[0],1,1)
-            print('here3')
 
             H = a_rep*wt_rep
-            print('here4')
             deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
-            print('here5')
             G = H/deno
-
-            print('G', G.shape)
-            print('R[output_node]', R[output_node].shape)
 
             R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1).float())
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
@@ -195,8 +176,6 @@ class LRP:
             break
 
         print(f'- Completed layer: {layer}')
-        print('R[output_node]', R[output_node].shape)
-        print('R_previous[output_node]', R_previous[output_node].shape)
 
         if (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2))):
             print('- R score is conserved up to relative tolerance 1e-5')
@@ -235,6 +214,17 @@ class LRP:
             break
 
         print('- Completed layer: Message Passing')
+
+        if (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1))):
+            print('- R score is conserved up to relative tolerance 1e-5')
+        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
+            print('- R score is conserved up to relative tolerance 1e-4')
+        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
+            print('- R score is conserved up to relative tolerance 1e-3')
+        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
+            print('- R score is conserved up to relative tolerance 1e-2')
+        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
+            print('- R score is conserved up to relative tolerance 1e-1')
 
         return R_tensor_per_all_nodes
 
@@ -299,22 +289,16 @@ class LRP:
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
-                R = self.easy_rule(layer, input, R, index, output_layer_bool, activation_layer=False)
+                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=False)
                 to_explain["R"]["layer"+str(index-2)]=R
             elif 'LeakyReLU' or 'ELU' in str(layer):
-                R = self.easy_rule(layer, input, R, index, output_layer_bool, activation_layer=True)
+                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True)
                 to_explain["R"]["layer"+str(index-2)]=R
         else:
             if 'Linear' in str(layer):
                 big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
             elif 'LeakyReLU' or 'ELU' in str(layer):
                 big_list =  self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=True)
-
-            #
-            # if 'Linear' in str(layer):
-            #     big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
-            # elif 'LeakyReLU' or 'ELU' in str(layer):
-            #     big_list =  self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=True)
 
         return R, big_list
 
