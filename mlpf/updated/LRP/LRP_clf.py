@@ -176,7 +176,7 @@ class LRP:
 
             # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(R[output_node].shape[0],a.shape[0],1,1)
             # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[3])
-            wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],-1,-1,-1)
+            wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],-1,-1)
 
             H = a_rep*wt_rep
             # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
