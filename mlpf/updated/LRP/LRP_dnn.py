@@ -50,16 +50,16 @@ class LRP:
             b = layer.bias
 
         wt = torch.transpose(w,0,1)
-        Wt = []
 
         if output_layer:
-            R_list = []
+            R_list = [None]*R.shape[1]
+            Wt = [None]*R.shape[1]
             for output_node in range(R.shape[1]):
-                R_list.append(R[:,output_node].reshape(-1,1).clone())
-                Wt.append(wt[:,output_node].reshape(-1,1))
+                R_list[output_node]=(R[:,output_node].reshape(-1,1).clone())
+                Wt[output_node]=(wt[:,output_node].reshape(-1,1))
         else:
-            Wt = [wt,wt,wt,wt,wt,wt]
             R_list = R
+            Wt = [wt]*len(R_list)
 
         R_previous=[None]*len(R_list)
         for output_node in range(len(R_list)):

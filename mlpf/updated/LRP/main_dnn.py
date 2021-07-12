@@ -123,8 +123,6 @@ if __name__ == "__main__":
     'load': True, 'load_epoch': 0, 'load_model': 'LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4',
     'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'nn3': True, 'nn4': True, 'title': 'dnn', 'explain': True})
 
-    device = 'cpu'
-
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
     full_dataset_ttbar = PFGraphDataset(args.dataset)
