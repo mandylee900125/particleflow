@@ -22,7 +22,7 @@ from torch_geometric.nn import GraphConv
 #Model with gravnet clustering
 class PFNet7(nn.Module):
     def __init__(self,
-        input_dim=12, hidden_dim=256, input_encoding=12, encoding_dim=125,
+        input_dim=12, hidden_dim=256, hidden_dim_nn1=64, input_encoding=12, encoding_dim=125,
         output_dim_id=6,
         output_dim_p4=6,
         dropout_rate=0.0,
@@ -38,6 +38,7 @@ class PFNet7(nn.Module):
 
         self.act = nn.LeakyReLU
         self.act_f = torch.nn.functional.leaky_relu
+        self.elu = nn.ELU
 
         # dropout layer if needed anywhere
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
@@ -45,44 +46,26 @@ class PFNet7(nn.Module):
         # (1) DNN
         if self.nn1:
             self.nn1 = nn.Sequential(
-                nn.Linear(input_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, input_encoding),
+                nn.Linear(input_dim, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, hidden_dim_nn1),
+                self.elu(),
+                nn.Linear(hidden_dim_nn1, input_encoding),
             )
 
         # (2) CNN: Gravnet layer
         self.conv1 = GravNetConv(input_encoding, encoding_dim, space_dim, propagate_dimensions, nearest)
 
-        # (3) CNN: GraphConv
-        if self.conv2:
-            self.conv2 = GraphConv(encoding_dim, encoding_dim)
-
         # (4) DNN layer: classifying PID
         self.nn2 = nn.Sequential(
             nn.Linear(encoding_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            self.elu(),
             nn.Linear(hidden_dim, hidden_dim),
-            self.act(),
-            nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
+            self.elu(),
+            nn.Linear(hidden_dim, hidden_dim),
+            self.elu(),
             nn.Linear(hidden_dim, output_dim_id),
         )
-
-        # (5) DNN layer: regressing p4
-        if self.nn3:
-            self.nn3 = nn.Sequential(
-                nn.Linear(encoding_dim + output_dim_id, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, hidden_dim),
-                self.act(),
-                nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity(),
-                nn.Linear(hidden_dim, output_dim_p4),
-            )
 
     def forward(self, data):
 

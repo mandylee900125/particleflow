@@ -98,7 +98,7 @@ class LRP:
         return frac*R
 
     @staticmethod
-    def gravnet_rule(layer,input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU):
+    def gravnet_rule(layer, input, R, edge_index, edge_weight, index, after_message, before_message, LeakyReLU):
 
         print('l2', layer)
         BIG_LIST=[]
