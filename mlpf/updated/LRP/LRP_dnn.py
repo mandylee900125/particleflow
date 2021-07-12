@@ -137,11 +137,11 @@ class LRP:
 
         # backward pass with specified LRP rule
         if 'Linear' in str(layer):
-            R=rule(layer, input, R, index, output_layer_bool, activation_layer=False)
+            R=self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=False)
             to_explain["R"][index-2]=R
 
         elif 'LeakyReLU' or 'ELU' in str(layer):
-            R=rule(layer, input, R, index, output_layer_bool, activation_layer=True)
+            R=self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=True)
             to_explain["R"][index-2]=R
 
         return R
