@@ -189,9 +189,9 @@ def plot_particles(fname, true_id, true_p4, pred_id, pred_p4, pid=1):
 def plot_all_distributions(true_id, true_p4, pred_id, pred_p4, pf_id, cand_p4, target, epoch, outpath):
     plt.style.use("default")
 
-    _, true_id = torch.max(true_id, -1)
-    _, pred_id = torch.max(pred_id, -1)
-    _, pf_id = torch.max(pf_id, -1)
+    # _, true_id = torch.max(true_id, -1)
+    # _, pred_id = torch.max(pred_id, -1)
+    # _, pf_id = torch.max(pf_id, -1)
 
     msk = (pred_id!=0) & (true_id!=0)
 

@@ -53,7 +53,7 @@ import args
 from args import parse_args
 from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
-import evaluate
+import evaluate2
 from evaluate2 import make_plots, make_predictions
 from plot_utils import plot_confusion_matrix
 from model import PFNet7
@@ -313,11 +313,11 @@ if __name__ == "__main__":
     #     def __init__(self, d):
     #         self.__dict__ = d
     #
-    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 1, 'patience': 100, 'hidden_dim': 256, 'hidden_dim_nn1': 64, 'input_encoding': 12, 'encoding_dim': 64,
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 15, 'patience': 100, 'hidden_dim': 256, 'hidden_dim_nn1': 64, 'input_encoding': 12, 'encoding_dim': 64,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../prp/models/yee/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4,
     # 'space_dim': 4, 'propagate_dimensions': 22, 'nearest': 16, 'overwrite': True,
-    # 'load': True, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_noskip_nn1_nn3',
+    # 'load': True, 'load_epoch': 0, 'load_model': 'PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_both_noskip_nn1_nn3',
     # 'classification_only': False, 'nn1': True, 'nn3': True, 'encoding_of_clusters': True, 'embedding_dim': 3, 'nn0track': True, 'nn0cluster': True, 'title': '',
     # 'make_predictions_train': True, 'make_plots_train': True, 'make_predictions_valid': True, 'make_plots_valid': True, 'make_predictions_test': True, 'make_plots_test': True})
 
