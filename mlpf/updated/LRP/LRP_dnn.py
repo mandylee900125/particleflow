@@ -89,7 +89,6 @@ class LRP:
 
         return R_previous
 
-
     """
     explanation functions
     """
@@ -120,9 +119,6 @@ class LRP:
 
         # preparing variables required for computing LRP
         layer=self.model.get_layer(index=index,name=name)
-        rule=self.model.get_rule(index=index,layer_name=name)
-
-        rule=LRP.eps_rule
 
         if name is None:
             name=self.model.index2name(index)
