@@ -2,6 +2,7 @@ from glob import glob
 import sys, os
 import os.path as osp
 import pickle as pkl
+import _pickle as cPickle
 import math, time, numba, tqdm
 import numpy as np
 import pandas as pd
@@ -106,10 +107,10 @@ if __name__ == "__main__":
     # args = parse_args()
 
     # the next part initializes some args values (to run the script not from terminal)
-    class objectview(object):
-        def __init__(self, d):
-            self.__dict__ = d
-
+    # class objectview(object):
+    #     def __init__(self, d):
+    #         self.__dict__ = d
+    #
     # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 10, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
@@ -226,12 +227,12 @@ if __name__ == "__main__":
             R = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
             with open(args.outpath+'/'+args.load_model+f'/R_score_event{i}.pkl', 'wb') as f:
-                pkl.dump(R, f)
+                cPickle.dump(R, f)
 
             break
 
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
-# import pickle
-# with open('../../../prp/models/LRP/LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4/R_score_event0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     a = pkl.load(f)
+# import cPickle
+# with open('../../../prp/models/LRP/LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4/R_score.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     b = cPickle.load(f)
