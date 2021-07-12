@@ -73,7 +73,7 @@ class LRP:
 
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1])
-            print('- Finished computing R-scores for output neuron #: ', output_node)
+            print('- Finished computing R-scores for output neuron #: ', output_node+1)
 
         print(f'- Completed layer: {layer}')
         if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1))):
