@@ -235,4 +235,4 @@ if __name__ == "__main__":
 # # to retrieve a stored variable in pkl file
 # import _pickle as cPickle
 # with open('../../../prp/models/LRP/LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4/R_scorez.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     h = cPickle.load(f)
+#     s = cPickle.load(f)

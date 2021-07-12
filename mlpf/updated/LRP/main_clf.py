@@ -2,6 +2,7 @@ from glob import glob
 import sys, os
 import os.path as osp
 import pickle as pkl
+import _pickle as cPickle
 import math, time, numba, tqdm
 import numpy as np
 import pandas as pd
@@ -228,9 +229,9 @@ if __name__ == "__main__":
             R_before_gravnet, R_after_gravnet = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
             with open(args.outpath+'/'+args.load_model+'/R_before_gravnet.pkl', 'wb') as f:
-                pkl.dump(R_before_gravnet, f)
+                cPickle.dump(R_before_gravnet, f)
             with open(args.outpath+'/'+args.load_model+'/R_after_gravnet.pkl', 'wb') as f:
-                pkl.dump(R_after_gravnet, f)
+                cPickle.dump(R_after_gravnet, f)
             break
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
