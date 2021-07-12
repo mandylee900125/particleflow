@@ -107,10 +107,10 @@ if __name__ == "__main__":
     # args = parse_args()
 
     # the next part initializes some args values (to run the script not from terminal)
-    # class objectview(object):
-    #     def __init__(self, d):
-    #         self.__dict__ = d
-    #
+    class objectview(object):
+        def __init__(self, d):
+            self.__dict__ = d
+
     # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 10, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
