@@ -130,7 +130,8 @@ class LRP:
             # # print('R_list[output_node]', R_list[output_node].shape)
             # print('ss', R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).shape)
             #
-
+            print('G', G.shape)
+            print('R[output_node]', R[output_node].shape)
             # R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(1,R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
             # R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0],R_previous[output_node].shape[1], R_previous[output_node].shape[2])
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
@@ -173,12 +174,20 @@ class LRP:
         R_previous=[None]*len(R)
         for output_node in range(len(R)):
         # rep stands for repeated
+            print('here1')
             a_rep = a.reshape(1,a.shape[0],a.shape[1],1).repeat(R[output_node].shape[0],1,1,R[output_node].shape[2])
+            print('here2')
             wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(R[output_node].shape[0],a.shape[0],1,1)
+            print('here3')
 
             H = a_rep*wt_rep
+            print('here4')
             deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
+            print('here5')
             G = H/deno
+
+            print('G', G.shape)
+            print('R[output_node]', R[output_node].shape)
 
             R_previous[output_node] = torch.matmul(G, R[output_node].reshape(1,R[output_node].shape[0],R[output_node].shape[1],1).float())
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
