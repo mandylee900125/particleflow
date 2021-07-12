@@ -189,7 +189,7 @@ class LRP:
             print('G', G.shape)
             print('R[output_node]', R[output_node].shape)
 
-            R_previous[output_node] = torch.matmul(G, R[output_node].reshape(1,R[output_node].shape[0],R[output_node].shape[1],1).float())
+            R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R_previous[output_node].shape[2],1).float())
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
             break
