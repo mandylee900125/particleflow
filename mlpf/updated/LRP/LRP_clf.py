@@ -189,7 +189,7 @@ class LRP:
             print('G', G.shape)
             print('R[output_node]', R[output_node].shape)
 
-            R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R_previous[output_node].shape[2],1).float())
+            R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1).float())
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
             break
@@ -296,10 +296,10 @@ class LRP:
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
-                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=False)
+                R = self.easy_rule(layer, input, R, index, output_layer_bool, activation_layer=False)
                 to_explain["R"]["layer"+str(index-2)]=R
             elif 'LeakyReLU' or 'ELU' in str(layer):
-                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True)
+                R = self.easy_rule(layer, input, R, index, output_layer_bool, activation_layer=True)
                 to_explain["R"]["layer"+str(index-2)]=R
         else:
             if 'Linear' in str(layer):
