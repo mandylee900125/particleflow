@@ -172,21 +172,46 @@ class LRP:
         # rep stands for repeated
             # a_rep = a.reshape(1,a.shape[0],a.shape[1],1).repeat(R[output_node].shape[0],1,1,R[output_node].shape[2])
             # a_rep = a.reshape(1,a.shape[0],a.shape[1],1).expand(R[output_node].shape[0],a.reshape(1,a.shape[0],a.shape[1],1).shape[1],a.reshape(1,a.shape[0],a.shape[1],1).shape[2],R[output_node].shape[2])
+            print('hey1')
+            t0=time.time()
             a_rep = a.reshape(1,a.shape[0],a.shape[1],1).expand(R[output_node].shape[0],-1,-1,R[output_node].shape[2])
+            t1=time.time()
+            print('hey2', t1-t0)
 
             # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(R[output_node].shape[0],a.shape[0],1,1)
             # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[3])
+            t0=time.time()
             wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],-1,-1)
+            t1=time.time()
+            print('hey3', t1-t0)
 
+            t0=time.time()
             H = a_rep*wt_rep
+            t1=time.time()
+            print('hey4', t1-t0)
+
             # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
             # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[0],H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[1],a.shape[1],H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[3]).float()
+            t0=time.time()
             deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,a.shape[1],-1).float()
+            t1=time.time()
+            print('hey5', t1-t0)
 
+            t0=time.time()
             G = H/deno
+            t1=time.time()
+            print('hey6', t1-t0)
 
+            t0=time.time()
             R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1).float())
+            t1=time.time()
+            print('hey7', t1-t0)
+
+            t0=time.time()
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
+            t1=time.time()
+            print('hey8', t1-t0)
+
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
             break
 
