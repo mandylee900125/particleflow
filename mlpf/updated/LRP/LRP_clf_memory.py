@@ -119,17 +119,13 @@ class LRP:
         R_previous=[None]*len(R_list)
         for output_node in range(len(R_list)):
             # rep stands for repeated
-            # a_rep = a.reshape(a.shape[0],a.shape[1],1).repeat(1,1,R_list[output_node].shape[1])
             a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
-            a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
-            # wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(a.shape[0],1,1)
-            # wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(a.shape[0],Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[1],Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2])
             wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(input.shape[0],-1,-1)
 
             H = a_rep*wt_rep
             # deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).repeat(1,a.shape[1],1).float()
             # deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).shape[0],a.shape[1],H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).shape[2]).float()
-            deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,input.shape[1],-1).float()
+            deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,input.shape[1],-1)
 
             G = H/deno
 
