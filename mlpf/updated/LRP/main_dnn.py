@@ -1,7 +1,8 @@
 from glob import glob
 import sys, os
 import os.path as osp
-import pickle, math, time, numba, tqdm
+import pickle as pkl
+import math, time, numba, tqdm
 import numpy as np
 import pandas as pd
 import sklearn
@@ -109,19 +110,19 @@ if __name__ == "__main__":
         def __init__(self, d):
             self.__dict__ = d
 
-    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 10, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
-    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
-    # 'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
-    # 'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
-    # 'load': True, 'load_epoch': 0, 'load_model': 'LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4',
-    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'nn3': True, 'nn4': True, 'title': 'dnn', 'explain': True})
-
     args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 10, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
-    'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
-    'outpath': '../../../../test_tmp_delphes/experiments/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
+    'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
+    'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
     'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
     'load': True, 'load_epoch': 0, 'load_model': 'LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4',
     'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'nn3': True, 'nn4': True, 'title': 'dnn', 'explain': True})
+
+    # args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 1, 'n_epochs': 10, 'patience': 100, 'hidden_dim':256, 'hidden_dim_nn1':64, 'input_encoding': 12, 'encoding_dim': 64,
+    # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
+    # 'outpath': '../../../../test_tmp_delphes/experiments/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 2e-4, 'dropout': 0.3,
+    # 'space_dim': 8, 'propagate_dimensions': 22, 'nearest': 40, 'overwrite': True,
+    # 'load': True, 'load_epoch': 0, 'load_model': 'LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4',
+    # 'evaluate': False, 'evaluate_on_cpu': False, 'classification_only': False, 'nn1': True, 'nn3': True, 'nn4': True, 'title': 'dnn', 'explain': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -181,7 +182,6 @@ if __name__ == "__main__":
         model.eval()
         print(model)
 
-        events = []
         signal =torch.tensor([1,0,0,0,0,0],dtype=torch.float32).to(device)
 
         # create some hooks to retrieve intermediate activations
@@ -225,12 +225,13 @@ if __name__ == "__main__":
 
             R = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
-            events.append(R)
+            with open(args.outpath+'/'+args.load_model+f'/R_score_event{i}.pkl', 'wb') as f:
+                pkl.dump(R, f)
 
             break
 
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
 # import pickle
-# with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_normed_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     a = pickle.load(f)
+# with open('../../../prp/models/LRP/LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4/R_score_event0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     a = pkl.load(f)
