@@ -195,15 +195,18 @@ class LRP:
             break
 
         print(f'- Completed layer: {layer}')
-        if (torch.allclose(R_previous[output_node].sum(axis=1), R[output_node].sum(axis=1))):
+        print('R[output_node]', R[output_node].shape)
+        print('R_previous[output_node]', R_previous[output_node].shape)
+
+        if (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2))):
             print('- R score is conserved up to relative tolerance 1e-5')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
+        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-4)):
             print('- R score is conserved up to relative tolerance 1e-4')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
+        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-3)):
             print('- R score is conserved up to relative tolerance 1e-3')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
+        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-2)):
             print('- R score is conserved up to relative tolerance 1e-2')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
+        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-1)):
             print('- R score is conserved up to relative tolerance 1e-1')
 
         return R_previous
