@@ -227,12 +227,12 @@ if __name__ == "__main__":
             R = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
             with open(args.outpath+'/'+args.load_model+f'/R_score_event{i}.pkl', 'wb') as f:
-                cPickle.dump(R, f)
+                pkl.dump(R, f)
 
             break
 
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
-# import cPickle
-# with open('../../../prp/models/LRP/LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4/R_score.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     b = cPickle.load(f)
+# import _pickle as cPickle
+# with open('../../../prp/models/LRP/LRP_DNN_PFNet7_gen_ntrain_1_nepochs_1_batch_size_1_lr_0.001_alpha_0.0002_both_dnnnoskip_nn1_nn3_nn4/R_scorez.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     h = cPickle.load(f)
