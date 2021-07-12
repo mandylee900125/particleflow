@@ -263,6 +263,7 @@ class LRP:
             else:
                 R, big_list  = self.explain_single_layer(R, to_explain, big_list, start_index+1, index)
 
+            print('size of big_list:', getsizeof(big_list))
             if len(big_list)==0:
                 with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R{index}.pkl', 'wb') as f:
                     cPickle.dump(R, f, protocol=4)
