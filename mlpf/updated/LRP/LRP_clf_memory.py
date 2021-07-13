@@ -179,7 +179,7 @@ class LRP:
     # @staticmethod
     # def message_passing_rule_1(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
     #
-    #     big_list=[[None]*len(R)]*R[0].shape[0]
+    #     big_list = [[None]*len(R)]*R[0].shape[0]
     #
     #     for node_i in range(R[0].shape[0]):
     #         for output_node in range(len(R)):
