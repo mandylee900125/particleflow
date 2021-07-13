@@ -8,6 +8,7 @@ import model_io
 from torch_geometric.utils import to_scipy_sparse_matrix
 import scipy
 import pickle, math, time
+import _pickle as cPickle
 
 from torch_geometric.data import Data
 import networkx as nx
@@ -64,15 +65,17 @@ class LRP:
         R_previous=[None]*len(R_list)
         for output_node in range(len(R_list)):
             # rep stands for repeated
-            a_rep = a.reshape(a.shape[0],a.shape[1],1).repeat(1,1,R_list[output_node].shape[1])
-            wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(a.shape[0],1,1)
+            a_rep = a.reshape(a.shape[0],a.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
+            wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(a.shape[0],-1,-1)
 
             H = a_rep*wt_rep
+            deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,a.shape[1],-1).float()
 
-            G = H/H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).repeat(1,a.shape[1],1).float()
+            G = H/deno
 
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1])
+
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
 
         print(f'- Completed layer: {layer}')
@@ -101,19 +104,21 @@ class LRP:
                 signal=torch.tensor([1,0,0,0,0,0],dtype=torch.float32).to(device),
                 return_result:bool=False):
 
-        inputs=to_explain["inputs"]
-        pred=to_explain["pred"]
-
-        start_index=self.model.n_layers                  ##########################
+        start_index = self.model.n_layers                  ##########################
         print('Total number of layers (including activation layers):', start_index)
-        to_explain['R'][start_index]=copy_tensor(pred)
 
         ### loop over each single layer
-        R = []
         for index in range(start_index+1, 1, -1):
             print(f"Explaining layer {1+start_index+1-index}/{start_index+1-1}")
-            R = self.explain_single_layer(R, to_explain, start_index+1, index)
-        return to_explain['R']
+            if index==start_index+1:
+                R = self.explain_single_layer(to_explain["pred"], to_explain, start_index+1, index)
+            else:
+                R = self.explain_single_layer(R, to_explain, start_index+1, index)
+
+            with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index}.pkl', 'wb') as f:
+                cPickle.dump(R, f, protocol=4)
+
+        print("Finished explaining all layers.")
 
     def explain_single_layer(self, R, to_explain, output_layer_index, index=None,name=None):
 
@@ -125,10 +130,7 @@ class LRP:
         if index is None:
             index=self.model.name2index(name)
 
-        # print('index is: ', index)
-
         input=to_explain['A'][name]
-        R=to_explain["R"][index-1]
 
         if index==output_layer_index:
             output_layer_bool=True
@@ -137,12 +139,9 @@ class LRP:
 
         # backward pass with specified LRP rule
         if 'Linear' in str(layer):
-            R=self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=False)
-            to_explain["R"][index-2]=R
-
+            R = self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=False)
         elif 'LeakyReLU' or 'ELU' in str(layer):
-            R=self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=True)
-            to_explain["R"][index-2]=R
+            R = self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=True)
 
         return R
 
