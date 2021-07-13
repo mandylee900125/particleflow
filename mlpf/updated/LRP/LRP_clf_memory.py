@@ -146,7 +146,7 @@ class LRP:
             w = layer.weight
             b = layer.bias
 
-        wt = torch.transpose(w,0,1)
+        wt = torch.transpose(w.detach(),0,1)
 
         Wt = [wt]*len(R)
 
@@ -165,7 +165,7 @@ class LRP:
             R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
 
-            print('- Finished computing R-scores for output neuron #: ', output_node+1)
+            print('- Finished computing R-scores for all nodes for output neuron #: ', output_node+1)
 
         print(f'- Completed layer: {layer}')
 
@@ -182,17 +182,45 @@ class LRP:
 
         return R_previous
 
+    # @staticmethod
+    # def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
+    #
+    #     big_list=[[None]*len(R)]*R[0].shape[0]
+    #
+    #     for node_i in range(R[0].shape[0]):
+    #         for output_node in range(len(R)):
+    #             big_list[node_i][output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[1])
+    #             big_list[node_i][output_node][node_i] = R[output_node][node_i]
+    #
+    #     print('- Completed layer: Message Passing')
+    #
+    #     return big_list
+    #
+
     @staticmethod
     def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        big_list=[[None]*len(R)]*R[0].shape[0]
+        big_list=[None]*len(R)
+        for output_node in range(len(R)):
+            big_list[output_node]=torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
 
-        for node_i in range(R[0].shape[0]):
-            for output_node in range(len(R)):
-                big_list[node_i][output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[1])
-                big_list[node_i][output_node][node_i] = R[output_node][node_i]
+            for node_i in range(R[output_node].shape[0]):
+                big_list[output_node][node_i][node_i]=R[output_node][node_i]
+
+            print('- Finished computing R-scores for for all nodes for output neuron # : ', output_node+1)
 
         print('- Completed layer: Message Passing')
+
+        if (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1))):
+            print('- R score is conserved up to relative tolerance 1e-5')
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
+            print('- R score is conserved up to relative tolerance 1e-4')
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
+            print('- R score is conserved up to relative tolerance 1e-3')
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
+            print('- R score is conserved up to relative tolerance 1e-2')
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
+            print('- R score is conserved up to relative tolerance 1e-1')
 
         return big_list
 
@@ -257,12 +285,16 @@ class LRP:
             elif 'LeakyReLU' or 'ELU' in str(layer):
                 R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
         else:
-            for node_i in range(len(big_list)):
-                if 'Linear' in str(layer):
-                    big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
-                elif 'LeakyReLU' or 'ELU' in str(layer):
-                    big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
-                print(f'Done with node {node_i}/{len(big_list)}')
+            # for node_i in range(len(big_list)):
+            #     if 'Linear' in str(layer):
+            #         big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
+            #     elif 'LeakyReLU' or 'ELU' in str(layer):
+            #         big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
+            #     print(f'Done with node {node_i}/{len(big_list)}')
+            if 'Linear' in str(layer):
+                big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
+            elif 'LeakyReLU' or 'ELU' in str(layer):
+                big_list =  self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=True)
 
         return R, big_list
 

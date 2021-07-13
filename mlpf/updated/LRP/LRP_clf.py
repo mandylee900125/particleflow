@@ -48,7 +48,7 @@ class LRP:
         if activation_layer:
             w = torch.eye(a.shape[1])
         else:
-            w = layer.weight
+            w = layer.weight.detach()
 
         if output_layer: # for the output layer
             T, W, r = [], [], []
@@ -100,7 +100,7 @@ class LRP:
             w = layer.weight
             b = layer.bias
 
-        wt = torch.transpose(w,0,1)
+        wt = torch.transpose(w.detach(),0,1)
 
         if output_layer:
             R_list = [None]*R.shape[1]
@@ -157,7 +157,7 @@ class LRP:
             w = layer.weight
             b = layer.bias
 
-        wt = torch.transpose(w,0,1)
+        wt = torch.transpose(w.detach(),0,1)
 
         Wt = [wt]*len(R)
 
@@ -278,7 +278,7 @@ class LRP:
         if index is None:
             index=self.model.name2index(name)
 
-        input=to_explain['A'][name]
+        input=to_explain['A'][name].detach()
 
         if index==output_layer_index:
             output_layer_bool=True
