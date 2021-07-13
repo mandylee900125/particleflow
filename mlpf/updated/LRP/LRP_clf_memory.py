@@ -286,7 +286,7 @@ class LRP:
             #         big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
             #     elif 'LeakyReLU' or 'ELU' in str(layer):
             #         big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
-            #     print(f'Done with node {node_i}/{len(big_list)}')
+            #     print(f'Done with node {node_i+1}/{len(big_list)}')
 
             # this way assumes you used message_passing_rule_2
             # in this way: big_list is a list of length 6 (output_neurons) of a big tensor of size (5k,5k,x) which contains the heatmap of R-scores of all nodes at once (more parallelizable, but more memory)
