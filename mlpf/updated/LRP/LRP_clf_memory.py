@@ -142,10 +142,6 @@ class LRP:
     @staticmethod
     def eps_rule_after_gravnet(layer, input, R, index, activation_layer):
 
-        # EPSILON=1e-9
-        # a=copy_tensor(input)
-        # a.retain_grad()
-
         if activation_layer:
             w = torch.eye(input.shape[1])
         else:
@@ -311,7 +307,7 @@ class LRP:
                     big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False)
                 elif 'LeakyReLU' or 'ELU' in str(layer):
                     big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True)
-    
+
         return R, big_list
 
 def copy_tensor(tensor,dtype=torch.float32):
