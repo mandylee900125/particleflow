@@ -10,6 +10,7 @@ import scipy
 import pickle, math, time
 import _pickle as cPickle
 from sys import getsizeof
+from tqdm import tqdm
 
 from torch_geometric.data import Data
 import networkx as nx
@@ -118,8 +119,6 @@ class LRP:
 
         if print_statement:
             print(f'- Completed layer: {layer}')
-            print('hoho', R_previous[output_node].get_device())
-            print('hoho', R_list[output_node].to('cpu').get_device())
             if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
                 print('- R score is conserved up to relative tolerance 1e-5')
             elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
@@ -133,7 +132,6 @@ class LRP:
 
         return R_previous
 
-
     @staticmethod
     def message_passing_rule_1(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
@@ -145,7 +143,6 @@ class LRP:
                 big_list[node_i][output_node][node_i] = R[output_node][node_i]
 
         print('- Completed layer: Message Passing')
-
         return big_list
 
     """
@@ -211,12 +208,12 @@ class LRP:
         else:
             # this way assumes you used message_passing_rule_1
             # in this way: big_list is a list of length 5k (nodes) that contains a list of length 6 (output_neurons) that contains tensors (5k,x) which are the heatmap of R-scores
-            for node_i in range(len(big_list)):
+            for node_i in tqdm(range(len(big_list))):
                 if 'Linear' in str(layer):
                     big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
                 elif 'LeakyReLU' or 'ELU' in str(layer):
                     big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
-                print(f'Done with node {node_i}/{len(big_list)}')
+                # print(f'Done with node {node_i+1}/{len(big_list)}')
 
         return R, big_list
 
