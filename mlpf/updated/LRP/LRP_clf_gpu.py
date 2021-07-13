@@ -118,15 +118,17 @@ class LRP:
 
         if print_statement:
             print(f'- Completed layer: {layer}')
-            if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1))):
+            print('hoho', R_previous[output_node].get_device())
+            print('hoho', R_list[output_node].to('cpu').get_device())
+            if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
                 print('- R score is conserved up to relative tolerance 1e-5')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-4)):
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
                 print('- R score is conserved up to relative tolerance 1e-4')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-3)):
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-3)):
                 print('- R score is conserved up to relative tolerance 1e-3')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-2)):
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-2)):
                 print('- R score is conserved up to relative tolerance 1e-2')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-1)):
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-1)):
                 print('- R score is conserved up to relative tolerance 1e-1')
 
         return R_previous
