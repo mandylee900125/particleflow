@@ -110,7 +110,10 @@ class LRP:
 
             G = H/deno
 
-            R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
+            print('G device: ', G.get_device())
+            print('R_list[output_node] device: ', R_list[output_node].get_device())
+
+            R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1])
 
             if print_statement:
