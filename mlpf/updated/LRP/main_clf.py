@@ -60,7 +60,7 @@ from model_io import model_io
 
 import networkx as nx
 from torch_geometric.utils.convert import to_networkx
-from tabulate import tabulate
+# from tabulate import tabulate
 
 # NOTE: this script works by loading an already trained model
 

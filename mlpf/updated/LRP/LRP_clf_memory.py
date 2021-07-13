@@ -40,13 +40,6 @@ class LRP:
     # this rule is wrong.. it is just here because it is much quicker for experimentation and gives the correct dimensions needed for debugging
     @staticmethod
     def easy_rule(layer,input,R,index,output_layer,activation_layer, print_statement):
-        print('l1', layer)
-
-        EPSILON=1e-9
-        # a=copy_tensor(input)
-        # a.retain_grad()
-
-        z = layer.forward(input)
 
         if activation_layer:
             w = torch.eye(input.shape[1])
@@ -61,8 +54,8 @@ class LRP:
                 W.append(w[i,:].reshape(1,-1))
                 I = torch.ones_like(R[:,i]).reshape(-1,1)
 
-                Numerator=(input*torch.matmul(T[i],W[i]))
-                Denominator=(input*torch.matmul(I,W[i])).sum(axis=1)
+                Numerator = (input*torch.matmul(T[i],W[i]))
+                Denominator = (input*torch.matmul(I,W[i])).sum(axis=1)
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 r.append(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
@@ -74,8 +67,8 @@ class LRP:
             for i in range(len(R)):
                 I = torch.ones_like(R[i])
 
-                Numerator=(input*torch.matmul(R[i],w))
-                Denominator=(input*torch.matmul(I,w)).sum(axis=1)
+                Numerator = (input*torch.matmul(R[i],w))
+                Denominator = (input*torch.matmul(I,w)).sum(axis=1)
 
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 R[i]=(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
@@ -158,7 +151,7 @@ class LRP:
 
             H = a_rep*wt_rep
 
-            deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,input.shape[1],-1)
+            deno = H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,input.shape[1],-1)
 
             G = H/deno
 
@@ -183,7 +176,7 @@ class LRP:
         return R_previous
 
     # @staticmethod
-    # def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
+    # def message_passing_rule_1(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
     #
     #     big_list=[[None]*len(R)]*R[0].shape[0]
     #
@@ -198,14 +191,14 @@ class LRP:
     #
 
     @staticmethod
-    def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
+    def message_passing_rule_2(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        big_list=[None]*len(R)
+        big_list = [None]*len(R)
         for output_node in range(len(R)):
-            big_list[output_node]=torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
+            big_list[output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
 
             for node_i in range(R[output_node].shape[0]):
-                big_list[output_node][node_i][node_i]=R[output_node][node_i]
+                big_list[output_node][node_i][node_i] = R[output_node][node_i]
 
             print('- Finished computing R-scores for for all nodes for output neuron # : ', output_node+1)
 
@@ -259,23 +252,23 @@ class LRP:
 
     def explain_single_layer(self, R, to_explain, big_list, output_layer_index, index=None, name=None):
         # preparing variables required for computing LRP
-        layer=self.model.get_layer(index=index,name=name)
+        layer = self.model.get_layer(index=index,name=name)
 
         if name is None:
-            name=self.model.index2name(index)
+            name = self.model.index2name(index)
         if index is None:
-            index=self.model.name2index(name)
+            index = self.model.name2index(name)
 
         input=to_explain['A'][name].detach()
 
         if index==output_layer_index:
-            output_layer_bool=True
+            output_layer_bool = True
         else:
-            output_layer_bool=False
+            output_layer_bool = False
 
         # it works out of the box that the conv1.lin_s layer which we don't care about is in the same place of the message passing.. so we can just replace its action
         if 'conv1.lin_s' in str(name):
-            big_list = self.message_passing_rule(layer, input, R, big_list, to_explain["edge_index"], to_explain["edge_weight"], to_explain["after_message"], to_explain["before_message"], index)
+            big_list = self.message_passing_rule_2(layer, input, R, big_list, to_explain["edge_index"], to_explain["edge_weight"], to_explain["after_message"], to_explain["before_message"], index)
             return R, big_list
 
         # if you haven't hit the message passing step yet
@@ -285,12 +278,17 @@ class LRP:
             elif 'LeakyReLU' or 'ELU' in str(layer):
                 R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
         else:
+            # # this way assumes you used message_passing_rule_1
+            # # in this way: big_list is a list of length 5k (nodes) that contains a list of length 6 (output_neurons) that contains tensors (5k,x) which are the heatmap of R-scores
             # for node_i in range(len(big_list)):
             #     if 'Linear' in str(layer):
             #         big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
             #     elif 'LeakyReLU' or 'ELU' in str(layer):
             #         big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
             #     print(f'Done with node {node_i}/{len(big_list)}')
+
+            # this way assumes you used message_passing_rule_2
+            # in this way: big_list is a list of length 6 (output_neurons) of a big tensor of size (5k,5k,x) which contains the heatmap of R-scores of all nodes at once (more parallelizable, but more memory)
             if 'Linear' in str(layer):
                 big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
             elif 'LeakyReLU' or 'ELU' in str(layer):
