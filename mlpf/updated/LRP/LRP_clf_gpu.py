@@ -110,11 +110,8 @@ class LRP:
 
             G = H/deno
 
-            print('G device: ', G.get_device())
-            print('R_list[output_node] device: ', R_list[output_node].get_device())
-
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
-            R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1])
+            R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1]).to('cpu')
 
             if print_statement:
                 print('- Finished computing R-scores for output neuron #: ', output_node+1)
@@ -132,58 +129,13 @@ class LRP:
             elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-1)):
                 print('- R score is conserved up to relative tolerance 1e-1')
 
-            print('R_previous device is:', R_previous[output_node].get_device())
         return R_previous
 
-    @staticmethod
-    def eps_rule_after_gravnet(layer, input, R, index, activation_layer):
-
-        if activation_layer:
-            w = torch.eye(input.shape[1])
-        else:
-            w = layer.weight
-            b = layer.bias
-
-        wt = torch.transpose(w.detach(),0,1)
-
-        Wt = [wt]*len(R)
-
-        R_previous=[None]*len(R)
-        for output_node in range(len(R)):
-        # rep stands for repeated
-            a_rep = input.reshape(1,input.shape[0],input.shape[1],1).expand(R[output_node].shape[0],-1,-1,R[output_node].shape[2])
-            wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],input.shape[0],-1,-1)
-
-            H = a_rep*wt_rep
-
-            deno = H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,input.shape[1],-1)
-
-            G = H/deno
-
-            R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1))
-            R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
-
-            print('- Finished computing R-scores for all nodes for output neuron #: ', output_node+1)
-
-        print(f'- Completed layer: {layer}')
-
-        if (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2))):
-            print('- R score is conserved up to relative tolerance 1e-5')
-        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-4)):
-            print('- R score is conserved up to relative tolerance 1e-4')
-        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-3)):
-            print('- R score is conserved up to relative tolerance 1e-3')
-        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-2)):
-            print('- R score is conserved up to relative tolerance 1e-2')
-        elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-1)):
-            print('- R score is conserved up to relative tolerance 1e-1')
-        print(R_previous[output_node].requires_grad)
-        return R_previous
 
     @staticmethod
     def message_passing_rule_1(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        big_list=[[None]*len(R)]*R[0].shape[0]
+        big_list = [[None]*len(R)]*R[0].shape[0]
 
         for node_i in range(R[0].shape[0]):
             for output_node in range(len(R)):
@@ -193,34 +145,6 @@ class LRP:
         print('- Completed layer: Message Passing')
 
         return big_list
-
-    #
-    # @staticmethod
-    # def message_passing_rule_2(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
-    #
-    #     big_list = [None]*len(R)
-    #     for output_node in range(len(R)):
-    #         big_list[output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
-    #
-    #         for node_i in range(R[output_node].shape[0]):
-    #             big_list[output_node][node_i][node_i] = R[output_node][node_i]
-    #
-    #         print('- Finished computing R-scores for for all nodes for output neuron # : ', output_node+1)
-    #
-    #     print('- Completed layer: Message Passing')
-    #
-    #     if (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1))):
-    #         print('- R score is conserved up to relative tolerance 1e-5')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
-    #         print('- R score is conserved up to relative tolerance 1e-4')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
-    #         print('- R score is conserved up to relative tolerance 1e-3')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
-    #         print('- R score is conserved up to relative tolerance 1e-2')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
-    #         print('- R score is conserved up to relative tolerance 1e-1')
-    #
-    #     return big_list
 
     """
     explanation functions
@@ -291,15 +215,6 @@ class LRP:
                 elif 'LeakyReLU' or 'ELU' in str(layer):
                     big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
                 print(f'Done with node {node_i}/{len(big_list)}')
-
-            print('R_previous device is:', big_list[node_i][0].get_device())
-
-            # # this way assumes you used message_passing_rule_2
-            # # in this way: big_list is a list of length 6 (output_neurons) of a big tensor of size (5k,5k,x) which contains the heatmap of R-scores of all nodes at once (more parallelizable, but more memory)
-            # if 'Linear' in str(layer):
-            #     big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
-            # elif 'LeakyReLU' or 'ELU' in str(layer):
-            #     big_list =  self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=True)
 
         return R, big_list
 
