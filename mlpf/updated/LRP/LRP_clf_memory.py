@@ -40,6 +40,7 @@ class LRP:
     # this rule is wrong.. it is just here because it is much quicker for experimentation and gives the correct dimensions needed for debugging
     @staticmethod
     def easy_rule(layer,input,R,index,output_layer,activation_layer, print_statement):
+        EPSILON=1e-9
 
         if activation_layer:
             w = torch.eye(input.shape[1])
