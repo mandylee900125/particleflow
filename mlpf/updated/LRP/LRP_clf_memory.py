@@ -93,8 +93,8 @@ class LRP:
             R_list = [None]*R.shape[1]
             Wt = [None]*R.shape[1]
             for output_node in range(R.shape[1]):
-                R_list[output_node]=(R[:,output_node].reshape(-1,1).clone())
-                Wt[output_node]=(wt[:,output_node].reshape(-1,1))
+                R_list[output_node] = (R[:,output_node].reshape(-1,1).clone())
+                Wt[output_node] = (wt[:,output_node].reshape(-1,1))
         else:
             R_list = R
             Wt = [wt]*len(R_list)
