@@ -177,6 +177,7 @@ if __name__ == "__main__":
         state_dict=new_state_dict
 
     model.load_state_dict(state_dict)
+    model.to(device)
 
     if args.explain:
         model.eval()
