@@ -172,7 +172,7 @@ class LRP:
             print('- R score is conserved up to relative tolerance 1e-2')
         elif (torch.allclose(R_previous[output_node].sum(axis=2), R[output_node].sum(axis=2), rtol=1e-1)):
             print('- R score is conserved up to relative tolerance 1e-1')
-
+        print(R_previous[output_node].requires_grad)
         return R_previous
 
     # @staticmethod
