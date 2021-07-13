@@ -39,7 +39,7 @@ class LRP:
 
     # this rule is wrong.. it is just here because it is much quicker for experimentation and gives the correct dimensions needed for debugging
     @staticmethod
-    def easy_rule(layer,input,R,index,output_layer,activation_layer):
+    def easy_rule(layer,input,R,index,output_layer,activation_layer, print_statement):
         print('l1', layer)
 
         EPSILON=1e-9
@@ -82,12 +82,11 @@ class LRP:
 
                 print('- Finished computing R-scores for output neuron #: ', i+1)
             print(f'- Completed layer: {layer}')
-
             return R
 
 
     @staticmethod
-    def eps_rule_before_gravnet(layer, input, R, index, output_layer, activation_layer):
+    def eps_rule_before_gravnet(layer, input, R, index, output_layer, activation_layer, print_statement):
 
         if activation_layer:
             w = torch.eye(input.shape[1])
@@ -121,20 +120,21 @@ class LRP:
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).float()))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1])
 
-            print('- Finished computing R-scores for output neuron #: ', output_node+1)
+            if print_statement:
+                print('- Finished computing R-scores for output neuron #: ', output_node+1)
 
-        print(f'- Completed layer: {layer}')
-        if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1))):
-            print('- R score is conserved up to relative tolerance 1e-5')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-4)):
-            print('- R score is conserved up to relative tolerance 1e-4')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-3)):
-            print('- R score is conserved up to relative tolerance 1e-3')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-2)):
-            print('- R score is conserved up to relative tolerance 1e-2')
-        elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-1)):
-            print('- R score is conserved up to relative tolerance 1e-1')
-
+        if print_statement:
+            print(f'- Completed layer: {layer}')
+            if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1))):
+                print('- R score is conserved up to relative tolerance 1e-5')
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-4)):
+                print('- R score is conserved up to relative tolerance 1e-4')
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-3)):
+                print('- R score is conserved up to relative tolerance 1e-3')
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-2)):
+                print('- R score is conserved up to relative tolerance 1e-2')
+            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].sum(axis=1), rtol=1e-1)):
+                print('- R score is conserved up to relative tolerance 1e-1')
         return R_previous
 
     @staticmethod
@@ -181,44 +181,6 @@ class LRP:
             print('- R score is conserved up to relative tolerance 1e-1')
 
         return R_previous
-
-    # @staticmethod
-    # def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
-    #
-    #     # b=Data()
-    #     # b['edge_index']=edge_index
-    #     # b['num_nodes']=edge_index[0].shape[0]
-    #     # b['edge_weight']=edge_weight
-    #     #
-    #     # G = to_networkx(b, edge_attrs=['edge_weight'], to_undirected=True, remove_self_loops=False)
-    #     #
-    #     # def nodes_connected(u, v):
-    #     #     return u in G.neighbors(v)
-    #
-    #     big_list=[None]*len(R)
-    #     for output_node in range(len(R)):
-    #         big_list[output_node]=torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
-    #
-    #         for node_i in range(R[output_node].shape[0]):
-    #             big_list[output_node][node_i][node_i]=R[output_node][node_i]
-    #
-    #         print('- Finished computing R-scores for for all nodes for output neuron # : ', output_node+1)
-    #         break
-    #
-    #     print('- Completed layer: Message Passing')
-    #
-    #     if (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1))):
-    #         print('- R score is conserved up to relative tolerance 1e-5')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
-    #         print('- R score is conserved up to relative tolerance 1e-4')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
-    #         print('- R score is conserved up to relative tolerance 1e-3')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
-    #         print('- R score is conserved up to relative tolerance 1e-2')
-    #     elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
-    #         print('- R score is conserved up to relative tolerance 1e-1')
-    #
-    #     return big_list
 
     @staticmethod
     def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
@@ -291,20 +253,15 @@ class LRP:
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
-                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=False)
+                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=False, print_statement=True)
             elif 'LeakyReLU' or 'ELU' in str(layer):
-                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True)
+                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
         else:
-            # if 'Linear' in str(layer):
-            #     big_list = self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=False)
-            # elif 'LeakyReLU' or 'ELU' in str(layer):
-            #     big_list =  self.eps_rule_after_gravnet(layer, input, big_list, index, activation_layer=True)
-
             for node_i in range(len(big_list)):
                 if 'Linear' in str(layer):
-                    big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False)
+                    big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
                 elif 'LeakyReLU' or 'ELU' in str(layer):
-                    big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True)
+                    big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
                 print(f'Done with node {node_i}/{len(big_list)}')
 
         return R, big_list
