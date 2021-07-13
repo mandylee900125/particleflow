@@ -62,8 +62,7 @@ class LRP:
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 r.append(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
 
-                print('- Finished computing R-scores for output neuron #: ', i+1)
-            print(f'- Completed layer: {layer}')
+            print('- Finished computing R-scores')
             return r
         else:
             for i in range(len(R)):
@@ -75,14 +74,13 @@ class LRP:
                 Denominator = Denominator.reshape(-1,1).expand(Denominator.size()[0],Numerator.size()[1])
                 R[i]=(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
 
-                print('- Finished computing R-scores for output neuron #: ', i+1)
-            print(f'- Completed layer: {layer}')
+            print('- Finished computing R-scores')
             return R
 
 
     @staticmethod
-    def eps_rule_before_gravnet(layer, input, R, index, output_layer, activation_layer, print_statement):
-
+    def eps_rule(layer, input, R, index, output_layer, activation_layer, print_statement):
+        # takes as input a list of length (output_neurons) where each element is a tensor of shape (#nodes,latent_space_dimension)
         if activation_layer:
             w = torch.eye(input.shape[1]).to(device)
         else:
@@ -114,11 +112,8 @@ class LRP:
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1]).to('cpu')
 
-            if print_statement:
-                print('- Finished computing R-scores for output neuron #: ', output_node+1)
-
         if print_statement:
-            print(f'- Completed layer: {layer}')
+            print('- Finished computing R-scores')
             if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
                 print('- R score is conserved up to relative tolerance 1e-5')
             elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
@@ -133,7 +128,7 @@ class LRP:
         return R_previous
 
     @staticmethod
-    def message_passing_rule_1(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
+    def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
         big_list = [[None]*len(R)]*R[0].shape[0]
 
@@ -142,7 +137,7 @@ class LRP:
                 big_list[node_i][output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[1])
                 big_list[node_i][output_node][node_i] = R[output_node][node_i]
 
-        print('- Completed layer: Message Passing')
+        print('- Finished distributing R-scores for Message Passing')
         return big_list
 
     """
@@ -163,17 +158,17 @@ class LRP:
         ### loop over each single layer
         big_list=[]
         for index in range(start_index+1, 1,-1):
-            print(f"Explaining layer {1+start_index+1-index}/{start_index+1-1}")
+            print(f"Explaining layer {1+start_index+1-index}/{start_index+1-1}: {self.model.get_layer(index=index,name=None)}")
             if index==start_index+1:
                 R, big_list  = self.explain_single_layer(to_explain["pred"].detach(), to_explain, big_list, start_index+1, index)
             else:
                 R, big_list  = self.explain_single_layer(R, to_explain, big_list, start_index+1, index)
 
             if len(big_list)==0:
-                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index}.pkl', 'wb') as f:
+                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index-1}.pkl', 'wb') as f:
                     cPickle.dump(R, f, protocol=4)
             else:
-                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index}.pkl', 'wb') as f:
+                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index-1}.pkl', 'wb') as f:
                     cPickle.dump(big_list, f, protocol=4)
 
         print("Finished explaining all layers.")
@@ -196,23 +191,22 @@ class LRP:
 
         # it works out of the box that the conv1.lin_s layer which we don't care about is in the same place of the message passing.. so we can just replace its action
         if 'conv1.lin_s' in str(name):
-            big_list = self.message_passing_rule_1(layer, input, R, big_list, to_explain["edge_index"], to_explain["edge_weight"], to_explain["after_message"], to_explain["before_message"], index)
+            big_list = self.message_passing_rule(layer, input, R, big_list, to_explain["edge_index"], to_explain["edge_weight"], to_explain["after_message"], to_explain["before_message"], index)
             return R, big_list
 
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
-                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=False, print_statement=True)
+                R = self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=False, print_statement=True)
             elif 'LeakyReLU' or 'ELU' in str(layer):
-                R = self.eps_rule_before_gravnet(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
+                R = self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
         else:
-            # this way assumes you used message_passing_rule_1
             # in this way: big_list is a list of length 5k (nodes) that contains a list of length 6 (output_neurons) that contains tensors (5k,x) which are the heatmap of R-scores
             for node_i in tqdm(range(len(big_list))):
                 if 'Linear' in str(layer):
-                    big_list[node_i] = self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
+                    big_list[node_i] = self.eps_rule(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
                 elif 'LeakyReLU' or 'ELU' in str(layer):
-                    big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
+                    big_list[node_i] =  self.eps_rule(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
                 # print(f'Done with node {node_i+1}/{len(big_list)}')
 
         return R, big_list
