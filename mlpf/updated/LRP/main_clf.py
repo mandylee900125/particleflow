@@ -232,6 +232,23 @@ if __name__ == "__main__":
             break
 ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
-# import pickle
-# with open('../../test_tmp_delphes/experiments/PFNet7_gen_ntrain_2_nepochs_3_batch_size_3_lr_0.0001/confusion_matrix_plots/cmT_normed_epoch_0.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     a = pickle.load(f)
+# import _pickle as cPickle
+#
+# R={}
+# for i in range(2,17,1):
+#     with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/R_score_layer'+str(i)+'.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#         R[i] = cPickle.load(f)
+#
+#
+# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/before_loop.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     b4 = cPickle.load(f)
+# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/after_loop.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     af = cPickle.load(f)
+#
+#
+# b4==af
+# b4[0][0]==af[0][0]
+# af[0][0].shape
+# b4[0][0].shape
+# print(b4[0][0].requires_grad)
+# print(af[0][0].requires_grad)

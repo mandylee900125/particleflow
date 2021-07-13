@@ -51,7 +51,7 @@ class LRP:
         if activation_layer:
             w = torch.eye(input.shape[1])
         else:
-            w = layer.weight
+            w = layer.weight.detach()
 
         if output_layer: # for the output layer
             T, W, r = [], [], []
@@ -68,7 +68,6 @@ class LRP:
                 r.append(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
 
                 print('- Finished computing R-scores for output neuron #: ', i+1)
-                break
             print(f'- Completed layer: {layer}')
             return r
         else:
@@ -82,7 +81,6 @@ class LRP:
                 R[i]=(torch.abs(Numerator / (Denominator+EPSILON*torch.sign(Denominator))))
 
                 print('- Finished computing R-scores for output neuron #: ', i+1)
-                break
             print(f'- Completed layer: {layer}')
 
             return R
@@ -97,7 +95,7 @@ class LRP:
             w = layer.weight
             b = layer.bias
 
-        wt = torch.transpose(w,0,1)
+        wt = torch.transpose(w.detach(),0,1)
 
         if output_layer:
             R_list = [None]*R.shape[1]
@@ -256,7 +254,7 @@ class LRP:
         for index in range(start_index+1, 1,-1):
             print(f"Explaining layer {1+start_index+1-index}/{start_index+1-1}")
             if index==start_index+1:
-                R, big_list  = self.explain_single_layer(to_explain["pred"], to_explain, big_list, start_index+1, index)
+                R, big_list  = self.explain_single_layer(to_explain["pred"].detach(), to_explain, big_list, start_index+1, index)
             else:
                 R, big_list  = self.explain_single_layer(R, to_explain, big_list, start_index+1, index)
 
@@ -278,7 +276,7 @@ class LRP:
         if index is None:
             index=self.model.name2index(name)
 
-        input=to_explain['A'][name]
+        input=to_explain['A'][name].detach()
 
         if index==output_layer_index:
             output_layer_bool=True
@@ -308,6 +306,7 @@ class LRP:
                 elif 'LeakyReLU' or 'ELU' in str(layer):
                     big_list[node_i] =  self.eps_rule_before_gravnet(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True)
                 print(f'Done with node {node_i}/{len(big_list)}')
+
         return R, big_list
 
 def copy_tensor(tensor,dtype=torch.float32):
@@ -321,13 +320,14 @@ def copy_tensor(tensor,dtype=torch.float32):
 
 ##-----------------------------------------------------------------------------
 #
-# arep=torch.transpose(a[0].repeat(6, 1),0,1)   # repeat it 6 times
-# H=arep*wt
+
+
+# # big_list is a list of length 5k
+# # each element is another list of length 6
+# # each element of that second list is a tensor of shape (5k,20)
 #
-# G = H/H.sum(axis=0).float()
+# # this function basically takes the 6 tensors and updates them in some way
+# # initially this big_list is initialized to have values (not None)
 #
-# Num = torch.matmul(G, R[0].float())
-#
-# print('Num.sum()', Num.sum())
-#
-# print(R[0].sum())
+# for i in range(len(big_list)): # looping over 5k
+#     big_list[i] = self.eps_rule_before_gravnet(layer, input, big_list[i], index, output_layer_bool, activation_layer=False)
