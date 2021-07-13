@@ -55,7 +55,7 @@ from graph_data_delphes import PFGraphDataset, one_hot_embedding
 from data_preprocessing import data_to_loader_ttbar, data_to_loader_qcd
 from model_LRP_clf import PFNet7
 
-from LRP_clf_memory import LRP
+from LRP_clf_gpu import LRP
 from model_io import model_io
 
 import networkx as nx
