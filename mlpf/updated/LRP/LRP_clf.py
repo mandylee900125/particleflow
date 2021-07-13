@@ -115,16 +115,10 @@ class LRP:
         R_previous=[None]*len(R_list)
         for output_node in range(len(R_list)):
             # rep stands for repeated
-            # a_rep = a.reshape(a.shape[0],a.shape[1],1).repeat(1,1,R_list[output_node].shape[1])
             a_rep = a.reshape(a.shape[0],a.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
-            a_rep = a.reshape(a.shape[0],a.shape[1],1).expand(-1,-1,R_list[output_node].shape[1])
-            # wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(a.shape[0],1,1)
-            # wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(a.shape[0],Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[1],Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2])
             wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(a.shape[0],-1,-1)
 
             H = a_rep*wt_rep
-            # deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).repeat(1,a.shape[1],1).float()
-            # deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).shape[0],a.shape[1],H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).shape[2]).float()
             deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,a.shape[1],-1).float()
 
             G = H/deno
@@ -170,47 +164,17 @@ class LRP:
         R_previous=[None]*len(R)
         for output_node in range(len(R)):
         # rep stands for repeated
-            # a_rep = a.reshape(1,a.shape[0],a.shape[1],1).repeat(R[output_node].shape[0],1,1,R[output_node].shape[2])
-            # a_rep = a.reshape(1,a.shape[0],a.shape[1],1).expand(R[output_node].shape[0],a.reshape(1,a.shape[0],a.shape[1],1).shape[1],a.reshape(1,a.shape[0],a.shape[1],1).shape[2],R[output_node].shape[2])
-            print('hey1')
-            t0=time.time()
             a_rep = a.reshape(1,a.shape[0],a.shape[1],1).expand(R[output_node].shape[0],-1,-1,R[output_node].shape[2])
-            t1=time.time()
-            print('hey2', t1-t0)
-
-            # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).repeat(R[output_node].shape[0],a.shape[0],1,1)
-            # wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[2],Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).shape[3])
-            t0=time.time()
             wt_rep = Wt[output_node].reshape(1,1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(R[output_node].shape[0],a.shape[0],-1,-1)
-            t1=time.time()
-            print('hey3', t1-t0)
 
-            t0=time.time()
             H = a_rep*wt_rep
-            t1=time.time()
-            print('hey4', t1-t0)
-
-            # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).repeat(1,1,a.shape[1],1).float()
-            # deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[0],H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[1],a.shape[1],H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).shape[3]).float()
-            t0=time.time()
             deno=H.sum(axis=2).reshape(H.sum(axis=2).shape[0],H.sum(axis=2).shape[1],1,H.sum(axis=2).shape[2]).expand(-1,-1,a.shape[1],-1)
-            t1=time.time()
-            print('hey5', t1-t0)
 
-            t0=time.time()
             G = H/deno
-            t1=time.time()
-            print('hey6', t1-t0)
 
-            t0=time.time()
             R_previous[output_node] = torch.matmul(G, R[output_node].reshape(R[output_node].shape[0],R[output_node].shape[1],R[output_node].shape[2],1).float())
-            t1=time.time()
-            print('hey7', t1-t0)
 
-            t0=time.time()
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1],R_previous[output_node].shape[2])
-            t1=time.time()
-            print('hey8', t1-t0)
 
             print('- Finished computing R-scores for output neuron #: ', output_node+1)
             break
@@ -243,30 +207,30 @@ class LRP:
         def nodes_connected(u, v):
             return u in G.neighbors(v)
 
-        R_tensor_per_all_nodes=[None]*len(R)
+        big_list=[None]*len(R)
         for output_node in range(len(R)):
-            R_tensor_per_all_nodes[output_node]=torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
+            big_list[output_node]=torch.zeros(R[output_node].shape[0],R[output_node].shape[0],R[output_node].shape[1])
 
             for node_i in range(R[output_node].shape[0]):
-                R_tensor_per_all_nodes[output_node][node_i][node_i]=R[output_node][node_i]
+                big_list[output_node][node_i][node_i]=R[output_node][node_i]
 
             print('- Finished computing R-scores for for all nodes for output neuron # : ', output_node+1)
             break
 
         print('- Completed layer: Message Passing')
 
-        if (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1))):
+        if (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1))):
             print('- R score is conserved up to relative tolerance 1e-5')
-        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-4)):
             print('- R score is conserved up to relative tolerance 1e-4')
-        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-3)):
             print('- R score is conserved up to relative tolerance 1e-3')
-        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-2)):
             print('- R score is conserved up to relative tolerance 1e-2')
-        elif (torch.allclose(R_tensor_per_all_nodes[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
+        elif (torch.allclose(big_list[output_node].sum(axis=1).sum(axis=1), R[output_node].sum(axis=1), rtol=1e-1)):
             print('- R score is conserved up to relative tolerance 1e-1')
 
-        return R_tensor_per_all_nodes
+        return big_list
 
 
     """
