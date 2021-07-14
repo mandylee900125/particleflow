@@ -130,6 +130,7 @@ class LRP:
     @staticmethod
     def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
+        # big_list = [[None]*len(R)]*R[0].shape[0]
         big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1])]*len(R)]*R[0].shape[0]
 
         for node_i in range(R[0].shape[0]):
