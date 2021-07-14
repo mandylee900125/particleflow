@@ -15,6 +15,7 @@ from tqdm import tqdm
 from torch_geometric.data import Data
 import networkx as nx
 from torch_geometric.utils.convert import to_networkx
+from torch_geometric.utils import to_dense_adj
 
 use_gpu = torch.cuda.device_count()>0
 multi_gpu = torch.cuda.device_count()>1
@@ -42,6 +43,10 @@ class LRP:
     @staticmethod
     def easy_rule(layer,input,R,index,output_layer,activation_layer, print_statement):
         EPSILON=1e-9
+        # a=copy_tensor(input)
+        # a.retain_grad()
+        # z = layer.forward(a)
+        # # basically layer.forward does this: output=(torch.matmul(a,torch.transpose(w,0,1))+b) , assuming the following w & b are retrieved
 
         if activation_layer:
             w = torch.eye(input.shape[1]).to(device)
@@ -79,10 +84,12 @@ class LRP:
 
 
     @staticmethod
-    def eps_rule(layer, input, R, index, output_layer, activation_layer, print_statement):
+    def eps_rule(layer, input, R, index, output_layer, activation_layer, print_statement, adjacency_matrix=None, message_passing=False):
         # takes as input a list of length (output_neurons) where each element is a tensor of shape (#nodes,latent_space_dimension)
         if activation_layer:
             w = torch.eye(input.shape[1]).to(device)
+        elif message_passing: # 1st message passing hack
+            w = adjacency_matrix
         else:
             w = layer.weight.to(device)
 
@@ -99,7 +106,12 @@ class LRP:
             Wt = [wt]*len(R_list)
 
         R_previous=[None]*len(R_list)
+
         for output_node in range(len(R_list)):
+
+            if message_passing: # 2nd message passing hack
+                R_list[output_node] = torch.transpose(R_list[output_node],0,1)
+
             # rep stands for repeated/expanded
             a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_node].shape[1]).to(device)
             wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(input.shape[0],-1,-1).to(device)
@@ -112,32 +124,61 @@ class LRP:
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1]).to('cpu')
 
+            if message_passing: # 3rd message passing hack
+                R_previous[output_node] = torch.transpose(R_previous[output_node],0,1)
+
         if print_statement:
             print('- Finished computing R-scores')
-            if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
-                print('- R score is conserved up to relative tolerance 1e-5')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
-                print('- R score is conserved up to relative tolerance 1e-4')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-3)):
-                print('- R score is conserved up to relative tolerance 1e-3')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-2)):
-                print('- R score is conserved up to relative tolerance 1e-2')
-            elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-1)):
-                print('- R score is conserved up to relative tolerance 1e-1')
+            if message_passing:
+                if (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
+                    print('- R score is conserved up to relative tolerance 1e-5')
+                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
+                    print('- R score is conserved up to relative tolerance 1e-4')
+                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-3)):
+                    print('- R score is conserved up to relative tolerance 1e-3')
+                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-2)):
+                    print('- R score is conserved up to relative tolerance 1e-2')
+                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-1)):
+                    print('- R score is conserved up to relative tolerance 1e-1')
+            else:
+                if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
+                    print('- R score is conserved up to relative tolerance 1e-5')
+                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
+                    print('- R score is conserved up to relative tolerance 1e-4')
+                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-3)):
+                    print('- R score is conserved up to relative tolerance 1e-3')
+                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-2)):
+                    print('- R score is conserved up to relative tolerance 1e-2')
+                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-1)):
+                    print('- R score is conserved up to relative tolerance 1e-1')
 
         return R_previous
 
     @staticmethod
-    def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
+    def message_passing_rule(self, layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        # big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1])]*len(R)]*R[0].shape[0]
-        big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1]) for i in range(len(R))] for i in range(R[0].shape[0])]
+        if len(big_list)==0: # first time you hit message passing then construct and start filling the big tensor from scratch
+            # big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1])]*len(R)]*R[0].shape[0]   # this is wrong but it's faster for debugging (the correct way is the following line)
+            big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1]) for i in range(len(R))] for i in range(R[0].shape[0])]
+            print('- Finished allocating memory for the big tensor of R-scores for all nodes')
 
-        for node_i in range(R[0].shape[0]):
-            for output_node in range(len(R)):
-                big_list[node_i][output_node][node_i] = R[output_node][node_i]
-        print('- Finished computing R-scores')
+            for node_i in range(len(big_list)):
+                for output_node in range(len(big_list[0])):
+                    big_list[node_i][output_node][node_i] = R[output_node][node_i]
+            print('- Finished initial filling of the big tensor')
+
+        # build the adjacency matrix
+        A = to_dense_adj(edge_index, edge_attr=edge_weight)[0] # adjacency matrix
+
+        if torch.allclose(torch.matmul(A, before_message), after_message, rtol=1e-3):
+            print("- Adjacency matrix is correctly computed")
+
+        # modify the big tensor based on message passing rule
+        for node_i in tqdm(range(len(big_list))):
+            big_list[node_i] = self.eps_rule(layer, torch.transpose(before_message,0,1), big_list[node_i], index, output_layer=False, activation_layer=False, print_statement=True, adjacency_matrix=A, message_passing=True)
+
         return big_list
+
 
     """
     explanation functions
@@ -190,7 +231,7 @@ class LRP:
         # it works out of the box that the conv1.lin_s layer which we don't care about is in the same place of the message passing.. so we can just replace its action
         if 'conv1.lin_s' in str(name):
             print(f"Explaining layer {output_layer_index+1-index}/{output_layer_index-1}: Message Passing")
-            big_list = self.message_passing_rule(layer, input, R, big_list, to_explain["edge_index"].detach(), to_explain["edge_weight"].detach(), to_explain["after_message"].detach(), to_explain["before_message"].detach(), index)
+            big_list = self.message_passing_rule(self, layer, input, R, big_list, to_explain["edge_index"].detach(), to_explain["edge_weight"].detach(), to_explain["after_message"].detach(), to_explain["before_message"].detach(), index)
             return R, big_list
 
         print(f"Explaining layer {output_layer_index+1-index}/{output_layer_index-1}: {layer}")
@@ -207,7 +248,6 @@ class LRP:
                     big_list[node_i] = self.eps_rule(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
                 elif 'LeakyReLU' or 'ELU' in str(layer):
                     big_list[node_i] =  self.eps_rule(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
-
         return R, big_list
 
 def copy_tensor(tensor,dtype=torch.float32):
