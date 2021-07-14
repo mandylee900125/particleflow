@@ -16,6 +16,7 @@ except ImportError:
 # copied it from pytorch_geometric source code
 # ADDED: retrieve edge_index, retrieve edge_weight
 # CHANGED: self.lin -> self.lin_p
+# CHANGED: used reduce='sum' instead of reduce='mean' in the message passing
 # REMOVED: skip connection
 
 class GravNetConv(MessagePassing):
@@ -112,7 +113,7 @@ class GravNetConv(MessagePassing):
     def aggregate(self, inputs: Tensor, index: Tensor,
                   dim_size: Optional[int] = None) -> Tensor:
         out_mean = scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
-                           reduce='mean')
+                           reduce='sum')
         return out_mean
 
     def __repr__(self):
