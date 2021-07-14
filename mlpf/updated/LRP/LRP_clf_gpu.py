@@ -87,20 +87,20 @@ class LRP:
     def eps_rule(layer, input, R, index, output_layer, activation_layer, print_statement, adjacency_matrix=None, message_passing=False):
         # takes as input a list of length (output_neurons) where each element is a tensor of shape (#nodes,latent_space_dimension)
         if activation_layer:
-            w = torch.eye(input.shape[1]).to(device)
+            w = torch.eye(input.shape[1])
         elif message_passing: # 1st message passing hack
             w = adjacency_matrix
         else:
             w = layer.weight.to(device)
 
-        wt = torch.transpose(w.detach(),0,1).to(device)
+        wt = torch.transpose(w.detach(),0,1)
 
         if output_layer:
             R_list = [None]*R.shape[1]
             Wt = [None]*R.shape[1]
             for output_node in range(R.shape[1]):
-                R_list[output_node] = (R[:,output_node].reshape(-1,1).clone()).to(device)
-                Wt[output_node] = (wt[:,output_node].reshape(-1,1)).to(device)
+                R_list[output_node] = (R[:,output_node].reshape(-1,1).clone())
+                Wt[output_node] = (wt[:,output_node].reshape(-1,1))
         else:
             R_list = R
             Wt = [wt]*len(R_list)
@@ -121,7 +121,8 @@ class LRP:
 
             G = H/deno
 
-            R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
+            R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1)))
+            print('R_previous[output_node] device', R_previous[output_node].get_device())
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1]).to('cpu')
 
             if message_passing: # 3rd message passing hack
@@ -165,13 +166,19 @@ class LRP:
             for node_i in range(len(big_list)):
                 for output_node in range(len(big_list[0])):
                     big_list[node_i][output_node][node_i] = R[output_node][node_i]
-            print('- Finished initial filling of the big tensor')
+            print('- Finished filling out the big tensor')
 
         # build the adjacency matrix
         A = to_dense_adj(edge_index, edge_attr=edge_weight)[0] # adjacency matrix
 
         if torch.allclose(torch.matmul(A, before_message), after_message, rtol=1e-3):
             print("- Adjacency matrix is correctly computed")
+
+        # # the following is another way to justify what we're doing
+        # # recall that eps_rule assumes that a forward prop is computed like this: z=torch.matmul(a,wT)
+        # # so for us, we will feed it a=before_messageT , w=A & expect z=after_messageT
+        # if torch.allclose(torch.matmul(torch.transpose(before_message,0,1), torch.transpose(A,0,1)), torch.transpose(after_message,0,1), rtol=1e-3):
+        #     print("- Adjacency matrix is correctly computed")
 
         # modify the big tensor based on message passing rule
         for node_i in tqdm(range(len(big_list))):
