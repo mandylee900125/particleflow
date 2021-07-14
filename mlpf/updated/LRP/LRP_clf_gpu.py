@@ -130,11 +130,11 @@ class LRP:
     @staticmethod
     def message_passing_rule(layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        big_list = [[None]*len(R)]*R[0].shape[0]
+        big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1])]*len(R)]*R[0].shape[0]
 
         for node_i in tqdm(range(R[0].shape[0])):
             for output_node in range(len(R)):
-                big_list[node_i][output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[1])
+                # big_list[node_i][output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[1])
                 big_list[node_i][output_node][node_i] = R[output_node][node_i]
 
         print('- Finished computing R-scores')
@@ -198,9 +198,9 @@ class LRP:
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
-                R = self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=False, print_statement=True)
+                R = self.easy_rule(layer, input, R, index, output_layer_bool, activation_layer=False, print_statement=True)
             elif 'LeakyReLU' or 'ELU' in str(layer):
-                R = self.eps_rule(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
+                R = self.easy_rule(layer, input, R, index, output_layer_bool, activation_layer=True, print_statement=True)
         else:
             # in this way: big_list is a list of length 5k (nodes) that contains a list of length 6 (output_neurons) that contains tensors (5k,x) which are the heatmap of R-scores
             for node_i in tqdm(range(len(big_list))):
