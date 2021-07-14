@@ -183,14 +183,10 @@ def train(model, loader, epoch, optimizer, alpha, target_type, device):
         if is_train:
             # BACKPROP
             #print(list(model.parameters())[1].grad)
-            a = list(model.parameters())[1].clone()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            b = list(model.parameters())[1].clone()
-            if torch.equal(a.data, b.data):
-                print('Model is not learning.. weights are not updating..')
-
+    
         t1 = time.time()
 
         accuracies_batch.append(accuracy_score(gen_ids.detach().cpu().numpy(), pred_ids.detach().cpu().numpy()))
