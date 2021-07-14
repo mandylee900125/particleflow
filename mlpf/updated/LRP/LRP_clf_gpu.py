@@ -132,12 +132,12 @@ class LRP:
 
         big_list = [[None]*len(R)]*R[0].shape[0]
 
-        for node_i in range(R[0].shape[0]):
+        for node_i in tqdm(range(R[0].shape[0])):
             for output_node in range(len(R)):
                 big_list[node_i][output_node] = torch.zeros(R[output_node].shape[0],R[output_node].shape[1])
                 big_list[node_i][output_node][node_i] = R[output_node][node_i]
 
-        print('- Finished distributing R-scores for Message Passing')
+        print('- Finished computing R-scores')
         return big_list
 
     """
@@ -158,7 +158,6 @@ class LRP:
         ### loop over each single layer
         big_list=[]
         for index in range(start_index+1, 1,-1):
-            print(f"Explaining layer {1+start_index+1-index}/{start_index+1-1}: {self.model.get_layer(index=index,name=None)}")
             if index==start_index+1:
                 R, big_list  = self.explain_single_layer(to_explain["pred"].detach(), to_explain, big_list, start_index+1, index)
             else:
@@ -191,9 +190,11 @@ class LRP:
 
         # it works out of the box that the conv1.lin_s layer which we don't care about is in the same place of the message passing.. so we can just replace its action
         if 'conv1.lin_s' in str(name):
-            big_list = self.message_passing_rule(layer, input, R, big_list, to_explain["edge_index"], to_explain["edge_weight"], to_explain["after_message"], to_explain["before_message"], index)
+            print(f"Explaining layer {output_layer_index+1-index}/{output_layer_index-1}: Message Passing")
+            big_list = self.message_passing_rule(layer, input, R, big_list, to_explain["edge_index"].detach(), to_explain["edge_weight"].detach(), to_explain["after_message"].detach(), to_explain["before_message"].detach(), index)
             return R, big_list
 
+        print(f"Explaining layer {output_layer_index+1-index}/{output_layer_index-1}: {layer}")
         # if you haven't hit the message passing step yet
         if len(big_list)==0:
             if 'Linear' in str(layer):
@@ -207,7 +208,6 @@ class LRP:
                     big_list[node_i] = self.eps_rule(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=False, print_statement=False)
                 elif 'LeakyReLU' or 'ELU' in str(layer):
                     big_list[node_i] =  self.eps_rule(layer, input, big_list[node_i], index, output_layer_bool, activation_layer=True, print_statement=False)
-                # print(f'Done with node {node_i+1}/{len(big_list)}')
 
         return R, big_list
 
