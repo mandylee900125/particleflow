@@ -88,13 +88,13 @@ class LRP:
         # takes as input a list of length (output_neurons) where each element is a tensor of shape (#nodes,latent_space_dimension)
         # outputs the same list with different latent_space_dimension
         if activation_layer:
-            w = torch.eye(input.shape[1]).to(device)
+            w = torch.eye(input.shape[1]).detach().to(device)
         elif message_passing: # 1st message passing hack
-            w = adjacency_matrix.to(device)
+            w = adjacency_matrix.detach().to(device)
         else:
-            w = layer.weight.to(device)
+            w = layer.weight.detach().to(device)
 
-        wt = torch.transpose(w.detach(),0,1)
+        wt = torch.transpose(w,0,1)
 
         if output_layer:
             R_list = [None]*R.shape[1]
@@ -184,8 +184,8 @@ class LRP:
         # modify the big tensor based on message passing rule
         for node_i in tqdm(range(len(big_list))):
             big_list[node_i] = self.eps_rule(layer, torch.transpose(before_message,0,1), big_list[node_i], index, output_layer=False, activation_layer=False, print_statement=True, adjacency_matrix=A, message_passing=True)
-            print(f'finished node{node_i+1}/{len(big_list)}')
-        print('- Finished computing R-scores')
+            print(f'- Finished computing R-score for node {node_i+1}/{len(big_list)}')
+        print('- Finished computing R-scores for the message passing layer')
         return big_list
 
 
