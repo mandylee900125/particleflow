@@ -86,10 +86,11 @@ class LRP:
     @staticmethod
     def eps_rule(layer, input, R, index, output_layer, activation_layer, print_statement, adjacency_matrix=None, message_passing=False):
         # takes as input a list of length (output_neurons) where each element is a tensor of shape (#nodes,latent_space_dimension)
+        # outputs the same list with different latent_space_dimension
         if activation_layer:
-            w = torch.eye(input.shape[1])
+            w = torch.eye(input.shape[1]).to(device)
         elif message_passing: # 1st message passing hack
-            w = adjacency_matrix
+            w = adjacency_matrix.to(device)
         else:
             w = layer.weight.to(device)
 
@@ -122,7 +123,6 @@ class LRP:
             G = H/deno
 
             R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
-            print('R_previous[output_node] device', R_previous[output_node].get_device())
             R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1]).to('cpu')
 
             if message_passing: # 3rd message passing hack
@@ -158,7 +158,8 @@ class LRP:
     @staticmethod
     def message_passing_rule(self, layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
 
-        if len(big_list)==0: # first time you hit message passing then construct and start filling the big tensor from scratch
+        # first time you hit message passing: construct and start filling the big tensor from scratch
+        if len(big_list)==0:
             # big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1])]*len(R)]*R[0].shape[0]   # this is wrong but it's faster for debugging (the correct way is the following line)
             big_list = [[torch.zeros(R[0].shape[0],R[0].shape[1]) for i in range(len(R))] for i in range(R[0].shape[0])]
             print('- Finished allocating memory for the big tensor of R-scores for all nodes')
@@ -166,7 +167,7 @@ class LRP:
             for node_i in range(len(big_list)):
                 for output_node in range(len(big_list[0])):
                     big_list[node_i][output_node][node_i] = R[output_node][node_i]
-            print('- Finished filling out the big tensor')
+            print('- Finished initializing the big tensor')
 
         # build the adjacency matrix
         A = to_dense_adj(edge_index, edge_attr=edge_weight)[0] # adjacency matrix
@@ -174,16 +175,17 @@ class LRP:
         if torch.allclose(torch.matmul(A, before_message), after_message, rtol=1e-3):
             print("- Adjacency matrix is correctly computed")
 
-        # # the following is another way to justify what we're doing
+        # # the following is another way to justify using the same eps_rule but while transposing the input
         # # recall that eps_rule assumes that a forward prop is computed like this: z=torch.matmul(a,wT)
-        # # so for us, we will feed it a=before_messageT , w=A & expect z=after_messageT
+        # # so for us, since the following check return True, we will feed it a=before_messageT , w=A & expect z=after_messageT
         # if torch.allclose(torch.matmul(torch.transpose(before_message,0,1), torch.transpose(A,0,1)), torch.transpose(after_message,0,1), rtol=1e-3):
         #     print("- Adjacency matrix is correctly computed")
 
         # modify the big tensor based on message passing rule
         for node_i in tqdm(range(len(big_list))):
             big_list[node_i] = self.eps_rule(layer, torch.transpose(before_message,0,1), big_list[node_i], index, output_layer=False, activation_layer=False, print_statement=True, adjacency_matrix=A, message_passing=True)
-
+            print(f'finished node{node_i+1}/{len(big_list)}')
+        print('- Finished computing R-scores')
         return big_list
 
 
