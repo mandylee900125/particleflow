@@ -346,7 +346,7 @@ if __name__ == "__main__":
                     plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
                     plt.colorbar()
                     fig.set_size_inches(11, 16)
-                    plt.savefig(args.outpath+'/'+args.load_model+f'/class{str(i)}'+f'/pid{str(j)}+"/sample"+str(j)+"lo.jpg")
+                    plt.savefig(args.outpath+'/'+args.load_model+f'/class{str(i)}'+f'/pid{str(j)}'+f'/sample{str(j)}.jpg')
                     plt.close(fig)
 
             # # if you got all the intermediate R-score heatmaps stored then you can check if these are equal as a check of conservation across all layers:
