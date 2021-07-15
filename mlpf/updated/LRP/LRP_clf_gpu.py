@@ -156,7 +156,7 @@ class LRP:
         return R_previous
 
     @staticmethod
-    def message_passing_rule(self, layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index):
+    def message_passing_rule(self, layer, input, R, big_list, edge_index, edge_weight, after_message, before_message, index, outpath, load_model):
 
         # first time you hit message passing: construct and start filling the big tensor from scratch
         if len(big_list)==0:
@@ -180,6 +180,9 @@ class LRP:
         # # so for us, since the following check return True, we will feed it a=before_messageT , w=A & expect z=after_messageT
         # if torch.allclose(torch.matmul(torch.transpose(before_message,0,1), torch.transpose(A,0,1)), torch.transpose(after_message,0,1), rtol=1e-3):
         #     print("- Adjacency matrix is correctly computed")
+
+        with open(outpath+'/'+load_model+f'/R_score_layer_before_msg_passing.pkl', 'wb') as f:
+            cPickle.dump(big_list, f, protocol=4)
 
         # modify the big tensor based on message passing rule
         for node_i in tqdm(range(len(big_list))):
@@ -241,7 +244,7 @@ class LRP:
         # it works out of the box that the conv1.lin_s layer which we don't care about is in the same place of the message passing.. so we can just replace its action
         if 'conv1.lin_s' in str(name):
             print(f"Explaining layer {output_layer_index+1-index}/{output_layer_index-1}: Message Passing")
-            big_list = self.message_passing_rule(self, layer, input, R, big_list, to_explain["edge_index"].detach(), to_explain["edge_weight"].detach(), to_explain["after_message"].detach(), to_explain["before_message"].detach(), index)
+            big_list = self.message_passing_rule(self, layer, input, R, big_list, to_explain["edge_index"].detach(), to_explain["edge_weight"].detach(), to_explain["after_message"].detach(), to_explain["before_message"].detach(), index, to_explain["outpath"], to_explain["load_model"])
             return R, big_list
 
         print(f"Explaining layer {output_layer_index+1-index}/{output_layer_index-1}: {layer}")
