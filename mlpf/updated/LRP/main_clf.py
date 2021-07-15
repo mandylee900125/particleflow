@@ -45,6 +45,9 @@ from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch_geometric.nn import GravNetConv
 from torch.utils.data import random_split
 import torch_cluster
+import networkx as nx
+from torch_geometric.utils.convert import to_networkx
+from torch_geometric.utils import to_dense_adj
 
 sys.path.insert(1, '../')
 sys.path.insert(1, '../../../plotting/')
@@ -224,11 +227,101 @@ if __name__ == "__main__":
 
             model.set_dest(to_explain["A"])
 
-            # both R_before_gravnet & R_after_gravnet are dictionaries with keys 'layer15', 'layer14', ...
-            # for each key:
-            # R_before_gravnet: is one big tensor for all nodes.. the rows of the map represent nodes.. since nodes haven't talked to each other yet, the rows haven't mixed up yet
-            # R_after_gravnet: is one big tensor for each node.. the rows have mixed up differently for each node, depending on its neighbours
-            explainer.explain(to_explain,save=False,return_result=True, signal=signal)
+            big_list = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
+
+            # # make heatmaps
+            # pred_ids = pred_ids_one_hot.argmax(axis=1)
+            # target_ids = target_ids_one_hot.argmax(axis=1)
+            #
+            # for output_neuron in range(6):
+            #     list0, list1, list2, list3, list4, list5 = [], [], [], [], [], []
+            #     dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
+            #
+            #     for i,id in enumerate(target_ids):
+            #         R_cat_feat_cat_pred = torch.cat([big_list[i][output_node], X.x, pred_ids_one_hot, torch.arange(start=0, end=X.x.shape[0], step=1, dtype=int).reshape(-1,1)], dim=1)
+            #         if id==0:
+            #             list0.append(R_cat_feat_cat_pred)
+            #             dist0.append(i)
+            #         if id==1:
+            #             list1.append(R_cat_feat_cat_pred)
+            #             dist1.append(i)
+            #         if id==2:
+            #             list2.append(R_cat_feat_cat_pred)
+            #             dist2.append(i)
+            #         if id==3:
+            #             list3.append(R_cat_feat_cat_pred)
+            #             dist3.append(i)
+            #         if id==4:
+            #             list4.append(R_cat_feat_cat_pred)
+            #             dist4.append(i)
+            #         if id==5:
+            #             list5.append(R_cat_feat_cat_pred)
+            #             dist5.append(i)
+            #
+            #     list=[list0,list1,list2,list3,list4,list5]
+            #     dist=[dist0,dist1,dist2,dist3,dist4,dist5]
+            #
+            #     for pid in range(6):
+            #         print('pid', pid)
+            #         for j in range(len(list[pid])): # iterating over the nodes in a graph
+            #             # to keep non-zero rows
+            #             non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
+            #             harvest=list[pid][j][non_empty_mask,:]
+            #             pos=dist[pid][j]
+            #
+            #             def make_list(t):
+            #                 l=[]
+            #                 for elem in t:
+            #                     if elem==1:
+            #                         l.append('cluster')
+            #                     if elem==2:
+            #                         l.append('track')
+            #                 return l
+            #
+            #             node_types = make_list(harvest[:,12])
+            #
+            #             ### TODO: Not the best way to do it.. I am assuming here that only charged hadrons are connected to all tracks
+            #             if pid==1:
+            #                 features = ["type", " pt", "eta",
+            #                        "sphi", "cphi", "E", "eta_out", "sphi_out", "cphi_out", "charge", "is_gen_mu", "is_gen_el"]
+            #             else:
+            #                 features = ["type", "Et", "eta", "sphi", "cphi", "E", "Eem", "Ehad", "padding", "padding", "padding", "padding"]
+            #
+            #             fig, ax = plt.subplots()
+            #             fig.tight_layout()
+            #             if pid==0:
+            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true null')
+            #             if pid==1:
+            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true charged hadron')
+            #             if pid==2:
+            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true neutral hadron')
+            #             if pid==3:
+            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true photon')
+            #             if pid==4:
+            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true electron')
+            #             if pid==5:
+            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true muon')
+            #             ax.set_xticks(np.arange(len(features)))
+            #             ax.set_yticks(np.arange(len(node_types)))
+            #             for col in range(len(features)):
+            #                 for row in range(len(node_types)):
+            #                     text = ax.text(col, row, round(harvest[row,12+col].item(),2),
+            #                                    ha="center", va="center", color="w")
+            #             # ... and label them with the respective list entries
+            #             ax.set_xticklabels(features)
+            #             ax.set_yticklabels(node_types)
+            #             plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R=[round(num,2) for num in harvest[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
+            #             plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+            #             plt.colorbar()
+            #             fig.set_size_inches(11, 16)
+            #             plt.savefig("class"+str(output_neuron)+"/pid"+str(pid)+"/sample"+str(j)+".jpg")
+            #             plt.close(fig)
+            #
+            #             if j==3:
+            #                 break
+            #         if pid==2:
+            #              break
+
 
             break
 ## -----------------------------------------------------------
@@ -240,16 +333,7 @@ if __name__ == "__main__":
 #     with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/R_score_layer'+str(i)+'.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
 #         R[i] = cPickle.load(f)
 #
-#
-# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/before_loop.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     b4 = cPickle.load(f)
-# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/after_loop.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     af = cPickle.load(f)
-#
-#
-# b4==af
-# b4[0][0]==af[0][0]
-# af[0][0].shape
-# b4[0][0].shape
-# print(b4[0][0].requires_grad)
-# print(af[0][0].requires_grad)
+# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/nano/R_score_layer4.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     R4 = cPickle.load(f)
+# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/nano/R_score_layer6.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     R6 = cPickle.load(f)

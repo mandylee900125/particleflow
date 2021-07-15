@@ -86,7 +86,7 @@ class LRP:
     @staticmethod
     def eps_rule(layer, input, R, index, output_layer, activation_layer, print_statement, adjacency_matrix=None, message_passing=False):
         # takes as input a list of length (output_neurons) where each element is a tensor of shape (#nodes,latent_space_dimension)
-        # outputs the same list with different latent_space_dimension
+        # outputs the same list with tensors of different latent_space_dimension
         if activation_layer:
             w = torch.eye(input.shape[1]).detach().to(device)
         elif message_passing: # 1st message passing hack
@@ -99,58 +99,58 @@ class LRP:
         if output_layer:
             R_list = [None]*R.shape[1]
             Wt = [None]*R.shape[1]
-            for output_node in range(R.shape[1]):
-                R_list[output_node] = (R[:,output_node].reshape(-1,1).clone())
-                Wt[output_node] = (wt[:,output_node].reshape(-1,1))
+            for output_neuron in range(R.shape[1]):
+                R_list[output_neuron] = (R[:,output_neuron].reshape(-1,1).clone())
+                Wt[output_neuron] = (wt[:,output_neuron].reshape(-1,1))
         else:
             R_list = R
             Wt = [wt]*len(R_list)
 
         R_previous=[None]*len(R_list)
 
-        for output_node in range(len(R_list)):
+        for output_neuron in range(len(R_list)):
 
             if message_passing: # 2nd message passing hack
-                R_list[output_node] = torch.transpose(R_list[output_node],0,1)
+                R_list[output_neuron] = torch.transpose(R_list[output_neuron],0,1)
 
             # rep stands for repeated/expanded
-            a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_node].shape[1]).to(device)
-            wt_rep = Wt[output_node].reshape(1,Wt[output_node].shape[0],Wt[output_node].shape[1]).expand(input.shape[0],-1,-1).to(device)
+            a_rep = input.reshape(input.shape[0],input.shape[1],1).expand(-1,-1,R_list[output_neuron].shape[1]).to(device)
+            wt_rep = Wt[output_neuron].reshape(1,Wt[output_neuron].shape[0],Wt[output_neuron].shape[1]).expand(input.shape[0],-1,-1).to(device)
 
             H = a_rep*wt_rep
             deno = H.sum(axis=1).reshape(H.sum(axis=1).shape[0],1,H.sum(axis=1).shape[1]).expand(-1,input.shape[1],-1)
 
             G = H/deno
 
-            R_previous[output_node] = (torch.matmul(G, R_list[output_node].reshape(R_list[output_node].shape[0],R_list[output_node].shape[1],1).to(device)))
-            R_previous[output_node] = R_previous[output_node].reshape(R_previous[output_node].shape[0], R_previous[output_node].shape[1]).to('cpu')
+            R_previous[output_neuron] = (torch.matmul(G, R_list[output_neuron].reshape(R_list[output_neuron].shape[0],R_list[output_neuron].shape[1],1).to(device)))
+            R_previous[output_neuron] = R_previous[output_neuron].reshape(R_previous[output_neuron].shape[0], R_previous[output_neuron].shape[1]).to('cpu')
 
             if message_passing: # 3rd message passing hack
-                R_previous[output_node] = torch.transpose(R_previous[output_node],0,1)
+                R_previous[output_neuron] = torch.transpose(R_previous[output_neuron],0,1)
 
         if print_statement:
             print('- Finished computing R-scores')
             if message_passing:
-                if (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
+                if (torch.allclose(torch.transpose(R_previous[output_neuron],0,1).sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1))):
                     print('- R score is conserved up to relative tolerance 1e-5')
-                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
+                elif (torch.allclose(torch.transpose(R_previous[output_neuron],0,1).sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-4)):
                     print('- R score is conserved up to relative tolerance 1e-4')
-                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-3)):
+                elif (torch.allclose(torch.transpose(R_previous[output_neuron],0,1).sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-3)):
                     print('- R score is conserved up to relative tolerance 1e-3')
-                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-2)):
+                elif (torch.allclose(torch.transpose(R_previous[output_neuron],0,1).sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-2)):
                     print('- R score is conserved up to relative tolerance 1e-2')
-                elif (torch.allclose(torch.transpose(R_previous[output_node],0,1).sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-1)):
+                elif (torch.allclose(torch.transpose(R_previous[output_neuron],0,1).sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-1)):
                     print('- R score is conserved up to relative tolerance 1e-1')
             else:
-                if (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1))):
+                if (torch.allclose(R_previous[output_neuron].sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1))):
                     print('- R score is conserved up to relative tolerance 1e-5')
-                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-4)):
+                elif (torch.allclose(R_previous[output_neuron].sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-4)):
                     print('- R score is conserved up to relative tolerance 1e-4')
-                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-3)):
+                elif (torch.allclose(R_previous[output_neuron].sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-3)):
                     print('- R score is conserved up to relative tolerance 1e-3')
-                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-2)):
+                elif (torch.allclose(R_previous[output_neuron].sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-2)):
                     print('- R score is conserved up to relative tolerance 1e-2')
-                elif (torch.allclose(R_previous[output_node].sum(axis=1), R_list[output_node].to('cpu').sum(axis=1), rtol=1e-1)):
+                elif (torch.allclose(R_previous[output_neuron].sum(axis=1), R_list[output_neuron].to('cpu').sum(axis=1), rtol=1e-1)):
                     print('- R score is conserved up to relative tolerance 1e-1')
 
         return R_previous
@@ -165,8 +165,8 @@ class LRP:
             print('- Finished allocating memory for the big tensor of R-scores for all nodes')
 
             for node_i in range(len(big_list)):
-                for output_node in range(len(big_list[0])):
-                    big_list[node_i][output_node][node_i] = R[output_node][node_i]
+                for output_neuron in range(len(big_list[0])):
+                    big_list[node_i][output_neuron][node_i] = R[output_neuron][node_i]
             print('- Finished initializing the big tensor')
 
         # build the adjacency matrix
@@ -184,7 +184,7 @@ class LRP:
         # modify the big tensor based on message passing rule
         for node_i in tqdm(range(len(big_list))):
             big_list[node_i] = self.eps_rule(layer, torch.transpose(before_message,0,1), big_list[node_i], index, output_layer=False, activation_layer=False, print_statement=True, adjacency_matrix=A, message_passing=True)
-            print(f'- Finished computing R-score for node {node_i+1}/{len(big_list)}')
+            print(f'- Finished computing R-score for node {node_i+1}/{len(big_list)} for the message passing..')
         print('- Finished computing R-scores for the message passing layer')
         return big_list
 
@@ -220,6 +220,7 @@ class LRP:
                     cPickle.dump(big_list, f, protocol=4)
 
         print("Finished explaining all layers.")
+        return big_list      # returns the heatmaps for layer0 (i.e. input features)
 
     def explain_single_layer(self, R, to_explain, big_list, output_layer_index, index=None, name=None):
         # preparing variables required for computing LRP
