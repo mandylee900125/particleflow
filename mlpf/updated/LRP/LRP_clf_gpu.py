@@ -181,8 +181,8 @@ class LRP:
         # if torch.allclose(torch.matmul(torch.transpose(before_message,0,1), torch.transpose(A,0,1)), torch.transpose(after_message,0,1), rtol=1e-3):
         #     print("- Adjacency matrix is correctly computed")
 
-        with open(outpath+'/'+load_model+f'/R_score_layer_before_msg_passing.pkl', 'wb') as f:
-            cPickle.dump(big_list, f, protocol=4)
+        # with open(outpath+'/'+load_model+f'/R_score_layer_before_msg_passing.pkl', 'wb') as f:
+        #     cPickle.dump(big_list, f, protocol=4)
 
         # modify the big tensor based on message passing rule
         for node_i in tqdm(range(len(big_list))):
@@ -219,12 +219,12 @@ class LRP:
             else:
                 R, big_list  = self.explain_single_layer(R, to_explain, big_list, start_index+1, index)
 
-            if len(big_list)==0:
-                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index-1}.pkl', 'wb') as f:
-                    cPickle.dump(R, f, protocol=4)
-            else:
-                with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index-1}.pkl', 'wb') as f:
-                    cPickle.dump(big_list, f, protocol=4)
+            # if len(big_list)==0:
+            #     with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index-1}.pkl', 'wb') as f:
+            #         cPickle.dump(R, f, protocol=4)
+            # else:
+            #     with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{index-1}.pkl', 'wb') as f:
+            #         cPickle.dump(big_list, f, protocol=4)
 
         print("Finished explaining all layers.")
         return big_list      # returns the heatmaps for layer0 (i.e. input features)

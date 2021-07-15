@@ -117,15 +117,17 @@ if __name__ == "__main__":
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': True, 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
-    # 'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '', 'explain': True})
+    # 'load': False, 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
+    # 'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '',
+    # 'explain': True, 'load': True, 'make_heatmaps': True})
 
     args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 64,
     'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
     'outpath': '../../../../test_tmp_delphes/experiments/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    'load': True, 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
-    'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '', 'explain': True})
+    'load': False, 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
+    'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '',
+    'explain': True, 'load': True, 'make_heatmaps': True})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -230,111 +232,158 @@ if __name__ == "__main__":
 
             big_list = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
-            # # make heatmaps
-            # pred_ids = pred_ids_one_hot.argmax(axis=1)
-            # target_ids = target_ids_one_hot.argmax(axis=1)
-            #
-            # for output_neuron in range(6):
-            #     list0, list1, list2, list3, list4, list5 = [], [], [], [], [], []
-            #     dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
-            #
-            #     for i,id in enumerate(target_ids):
-            #         R_cat_feat_cat_pred = torch.cat([big_list[i][output_node], X.x, pred_ids_one_hot, torch.arange(start=0, end=X.x.shape[0], step=1, dtype=int).reshape(-1,1)], dim=1)
-            #         if id==0:
-            #             list0.append(R_cat_feat_cat_pred)
-            #             dist0.append(i)
-            #         if id==1:
-            #             list1.append(R_cat_feat_cat_pred)
-            #             dist1.append(i)
-            #         if id==2:
-            #             list2.append(R_cat_feat_cat_pred)
-            #             dist2.append(i)
-            #         if id==3:
-            #             list3.append(R_cat_feat_cat_pred)
-            #             dist3.append(i)
-            #         if id==4:
-            #             list4.append(R_cat_feat_cat_pred)
-            #             dist4.append(i)
-            #         if id==5:
-            #             list5.append(R_cat_feat_cat_pred)
-            #             dist5.append(i)
-            #
-            #     list=[list0,list1,list2,list3,list4,list5]
-            #     dist=[dist0,dist1,dist2,dist3,dist4,dist5]
-            #
-            #     for pid in range(6):
-            #         print('pid', pid)
-            #         for j in range(len(list[pid])): # iterating over the nodes in a graph
-            #             # to keep non-zero rows
-            #             non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
-            #             harvest=list[pid][j][non_empty_mask,:]
-            #             pos=dist[pid][j]
-            #
-            #             def make_list(t):
-            #                 l=[]
-            #                 for elem in t:
-            #                     if elem==1:
-            #                         l.append('cluster')
-            #                     if elem==2:
-            #                         l.append('track')
-            #                 return l
-            #
-            #             node_types = make_list(harvest[:,12])
-            #
-            #             ### TODO: Not the best way to do it.. I am assuming here that only charged hadrons are connected to all tracks
-            #             if pid==1:
-            #                 features = ["type", " pt", "eta",
-            #                        "sphi", "cphi", "E", "eta_out", "sphi_out", "cphi_out", "charge", "is_gen_mu", "is_gen_el"]
-            #             else:
-            #                 features = ["type", "Et", "eta", "sphi", "cphi", "E", "Eem", "Ehad", "padding", "padding", "padding", "padding"]
-            #
-            #             fig, ax = plt.subplots()
-            #             fig.tight_layout()
-            #             if pid==0:
-            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true null')
-            #             if pid==1:
-            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true charged hadron')
-            #             if pid==2:
-            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true neutral hadron')
-            #             if pid==3:
-            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true photon')
-            #             if pid==4:
-            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true electron')
-            #             if pid==5:
-            #                 ax.set_title('Heatmap for the "'+map_classid_to_classname(output_neuron)+'" prediction of a true muon')
-            #             ax.set_xticks(np.arange(len(features)))
-            #             ax.set_yticks(np.arange(len(node_types)))
-            #             for col in range(len(features)):
-            #                 for row in range(len(node_types)):
-            #                     text = ax.text(col, row, round(harvest[row,12+col].item(),2),
-            #                                    ha="center", va="center", color="w")
-            #             # ... and label them with the respective list entries
-            #             ax.set_xticklabels(features)
-            #             ax.set_yticklabels(node_types)
-            #             plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R=[round(num,2) for num in harvest[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
-            #             plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
-            #             plt.colorbar()
-            #             fig.set_size_inches(11, 16)
-            #             plt.savefig("class"+str(output_neuron)+"/pid"+str(pid)+"/sample"+str(j)+".jpg")
-            #             plt.close(fig)
-            #
-            #             if j==3:
-            #                 break
-            #         if pid==2:
-            #              break
+            with open(args.outpath+'/'+args.load_model+f'/big_list.pkl', 'wb') as f:
+                cPickle.dump(big_list, f, protocol=4)
+
+            with open(args.outpath+'/'+args.load_model+f'/to_explain.pkl', 'wb') as f:
+                cPickle.dump(to_explain, f, protocol=4)
+
+            break # explain onlyone single event
+
+    elif args.load:
+        with open(args.outpath+'/'+args.load_model+f'/to_explain.pkl', 'rb') as f:
+            big_list = cPickle.load(f)
+
+        with open(args.outpath+'/'+args.load_model+f'/to_explain.pkl', 'rb') as f:
+            to_explain = cPickle.load(f)
+
+        pred_ids_one_hot=to_explain["y"]
+        gen_ids_one_hot=to_explain["pred"]
+        X=to_explain["inputs"]
 
 
-            break
-## -----------------------------------------------------------
+    if args.make_heatmaps:
+        # make heatmaps
+        pred_ids = pred_ids_one_hot.argmax(axis=1)
+        gen_ids = gen_ids_one_hot.argmax(axis=1)
+
+        for pid in range(6):
+            list0, list1, list2, list3, list4, list5 = [], [], [], [], [], []
+            dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
+
+            for i,id in enumerate(gen_ids):
+                R_cat_feat_cat_pred = torch.cat([big_list[i][pid], X['x'], pred_ids_one_hot, torch.arange(start=0, end=X['x'].shape[0], step=1, dtype=int).reshape(-1,1)], dim=1)
+                if id==0:
+                    list0.append(R_cat_feat_cat_pred)
+                    dist0.append(i)
+                if id==1:
+                    list1.append(R_cat_feat_cat_pred)
+                    dist1.append(i)
+                if id==2:
+                    list2.append(R_cat_feat_cat_pred)
+                    dist2.append(i)
+                if id==3:
+                    list3.append(R_cat_feat_cat_pred)
+                    dist3.append(i)
+                if id==4:
+                    list4.append(R_cat_feat_cat_pred)
+                    dist4.append(i)
+                if id==5:
+                    list5.append(R_cat_feat_cat_pred)
+                    dist5.append(i)
+
+            list=[list0,list1,list2,list3,list4,list5]
+            dist=[dist0,dist1,dist2,dist3,dist4,dist5]
+
+            for pid in range(6):
+                print('pid', pid)
+                for j in range(len(list[pid])): # iterating over the nodes in a graph
+                    # to keep non-zero rows
+                    non_empty_mask = list[pid][j][:,:12].abs().sum(dim=1).bool()
+                    harvest=list[pid][j][non_empty_mask,:]
+                    pos=dist[pid][j]
+
+                    def make_list(t):
+                        l=[]
+                        for elem in t:
+                            if elem==1:
+                                l.append('cluster')
+                            if elem==2:
+                                l.append('track')
+                        return l
+
+                    node_types = make_list(harvest[:,12])
+
+                    ### TODO: Not the best way to do it.. I am assuming here that only charged hadrons are connected to all tracks
+                    if pid==1:
+                        features = ["type", " pt", "eta",
+                               "sphi", "cphi", "E", "eta_out", "sphi_out", "cphi_out", "charge", "is_gen_mu", "is_gen_el"]
+                    else:
+                        features = ["type", "Et", "eta", "sphi", "cphi", "E", "Eem", "Ehad", "padding", "padding", "padding", "padding"]
+
+                    fig, ax = plt.subplots()
+                    fig.tight_layout()
+                    if pid==0:
+                        ax.set_title('Heatmap for the "'+map_classid_to_classname(pid)+'" prediction of a true null')
+                    if pid==1:
+                        ax.set_title('Heatmap for the "'+map_classid_to_classname(pid)+'" prediction of a true charged hadron')
+                    if pid==2:
+                        ax.set_title('Heatmap for the "'+map_classid_to_classname(pid)+'" prediction of a true neutral hadron')
+                    if pid==3:
+                        ax.set_title('Heatmap for the "'+map_classid_to_classname(pid)+'" prediction of a true photon')
+                    if pid==4:
+                        ax.set_title('Heatmap for the "'+map_classid_to_classname(pid)+'" prediction of a true electron')
+                    if pid==5:
+                        ax.set_title('Heatmap for the "'+map_classid_to_classname(pid)+'" prediction of a true muon')
+                    ax.set_xticks(np.arange(len(features)))
+                    ax.set_yticks(np.arange(len(node_types)))
+                    for col in range(len(features)):
+                        for row in range(len(node_types)):
+                            text = ax.text(col, row, round(harvest[row,12+col].item(),2),
+                                           ha="center", va="center", color="w")
+                    # ... and label them with the respective list entries
+                    ax.set_xticklabels(features)
+                    ax.set_yticklabels(node_types)
+                    # plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R=[round(num,2) for num in harvest[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
+                    plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+                    plt.colorbar()
+                    fig.set_size_inches(11, 16)
+                    plt.savefig("class"+str(pid)+"/pid"+str(pid)+"/sample"+str(j)+"lo.jpg")
+                    plt.close(fig)
+
+            # # if you got all the intermediate R-score heatmaps stored then you can check if these are equal as a check of conservation across all layers:
+            # print(R16[0].sum(axis=1)[0])
+            # print(R15[0].sum(axis=1)[0])
+            # print(R14[0].sum(axis=1)[0])
+            # print(R13[0].sum(axis=1)[0])
+            # print(R13[0].sum(axis=1)[0])
+            # print(R12[0].sum(axis=1)[0])
+            # print(R11[0].sum(axis=1)[0])
+            # print(R10[0].sum(axis=1)[0])
+            # print(R9[0].sum(axis=1)[0])
+            # print(R8[0].sum(axis=1)[0])
+            # print(R_score_layer_before_msg_passing[0][0].sum(axis=0).sum())
+            # print(R7[0][0].sum(axis=0).sum())
+            # print(R6[0][0].sum(axis=1).sum())
+            # print(R5[0][0].sum(axis=1).sum())
+            # print(R4[0][0].sum(axis=1).sum())
+            # print(R3[0][0].sum(axis=1).sum())
+            # print(R2[0][0].sum(axis=1).sum())
+            # print(R1[0][0].sum(axis=1).sum())
+
+
+
+# ## -----------------------------------------------------------
 # # to retrieve a stored variable in pkl file
 # import _pickle as cPickle
 #
 # R={}
-# for i in range(2,17,1):
-#     with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/R_score_layer'+str(i)+'.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#         R[i] = cPickle.load(f)
+
 #
-# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/nano/R_score_layer4.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     R4 = cPickle.load(f)
-# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/nano/R_score_layer6.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     R6 = cPickle.load(f)
+# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/R_score_layer1.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     R1 = cPickle.load(f)
+#
+# len(R1)
+# len(R1[0])
+#
+# R1[0][0]
+#
+#
+# R1[0][0].shape
+#
+# R1[0][0].sum(axis=1)
+#
+#
+#1234567
+# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/R_score_layer12.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+#     R12 = cPickle.load(f)
