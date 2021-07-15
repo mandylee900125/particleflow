@@ -253,6 +253,14 @@ if __name__ == "__main__":
 
 
     if args.make_heatmaps:
+        # make directories to hold the heatmaps
+        for i in range(6):
+            if not osp.isdir(args.outpath+'/'+args.load_model+f'/class{str(i)}'):
+                os.makedirs(args.outpath+'/'+args.load_model+f'/class{str(i)}')
+            for j in range(6):
+                if not osp.isdir(args.outpath+'/'+args.load_model+f'/class{str(i)}'+f'/pid{str(j)}'):
+                    os.makedirs(args.outpath+'/'+args.load_model+f'/class{str(i)}'+f'/pid{str(j)}')
+
         # make heatmaps
         pred_ids = pred_ids_one_hot.argmax(axis=1)
         gen_ids = gen_ids_one_hot.argmax(axis=1)
@@ -338,7 +346,7 @@ if __name__ == "__main__":
                     plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
                     plt.colorbar()
                     fig.set_size_inches(11, 16)
-                    plt.savefig("class"+str(pid)+"/pid"+str(pid)+"/sample"+str(j)+"lo.jpg")
+                    plt.savefig(args.outpath+'/'+args.load_model+f'/class{str(i)}'+f'/pid{str(j)}+"/sample"+str(j)+"lo.jpg")
                     plt.close(fig)
 
             # # if you got all the intermediate R-score heatmaps stored then you can check if these are equal as a check of conservation across all layers:
