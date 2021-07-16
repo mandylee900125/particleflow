@@ -117,7 +117,7 @@ if __name__ == "__main__":
     # 'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../test_tmp_delphes/data/pythia8_qcd',
     # 'outpath': '../../../prp/models/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    # 'load': False, 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
+    # 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
     # 'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '',
     # 'explain': True, 'load': True, 'make_heatmaps': True})
 
@@ -125,9 +125,9 @@ if __name__ == "__main__":
     'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
     'outpath': '../../../../test_tmp_delphes/experiments/LRP/', 'optimizer': 'adam', 'lr': 0.001, 'alpha': 1, 'dropout': 0,
     'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
-    'load': False, 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
+    'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
     'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '',
-    'explain': True, 'load': True, 'make_heatmaps': True})
+    'explain': True, 'load': False, 'make_heatmaps': False})
 
     # define the dataset (assumes the data exists as .pt files in "processed")
     print('Processing the data..')
@@ -232,11 +232,13 @@ if __name__ == "__main__":
 
             big_list = explainer.explain(to_explain,save=False,return_result=True, signal=signal)
 
-            with open(args.outpath+'/'+args.load_model+f'/big_list.pkl', 'wb') as f:
-                cPickle.dump(big_list, f, protocol=4)
+            # with open(args.outpath+'/'+args.load_model+f'/big_list.pkl', 'wb') as f:
+            #     cPickle.dump(big_list, f, protocol=4)
+            # with open(args.outpath+'/'+args.load_model+f'/to_explain.pkl', 'wb') as f:
+            #     cPickle.dump(to_explain, f, protocol=4)
 
-            with open(args.outpath+'/'+args.load_model+f'/to_explain.pkl', 'wb') as f:
-                cPickle.dump(to_explain, f, protocol=4)
+            torch.save(big_list, to_explain["outpath"]+'/'+to_explain["load_model"]+f'/big_list.pt')
+            torch.save(to_explain, to_explain["outpath"]+'/'+to_explain["load_model"]+f'/to_explain.pt')
 
             break # explain onlyone single event
 
@@ -250,7 +252,6 @@ if __name__ == "__main__":
         pred_ids_one_hot=to_explain["y"]
         gen_ids_one_hot=to_explain["pred"]
         X=to_explain["inputs"]
-
 
     if args.make_heatmaps:
         # make directories to hold the heatmaps
@@ -392,6 +393,3 @@ if __name__ == "__main__":
 # R1[0][0].sum(axis=1)
 #
 #
-#1234567
-# with open('../../../prp/models/LRP/LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1/R_score_layer12.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-#     R12 = cPickle.load(f)

@@ -207,9 +207,11 @@ class LRP:
         start_index=self.model.n_layers                  ##########################
         print('Total number of layers (including activation layers):', start_index)
 
-        # store the R-scores for the output layer (they are basically the model predictions)
-        with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{start_index+1}.pkl', 'wb') as f:
-            cPickle.dump(to_explain["pred"].detach(), f, protocol=4)
+        # # store the R-scores for the output layer (they are basically the model predictions)
+        # with open(to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{start_index+1}.pkl', 'wb') as f:
+        #     cPickle.dump(to_explain["pred"].detach(), f, protocol=4)
+
+        torch.save(to_explain["pred"].detach(), to_explain["outpath"]+'/'+to_explain["load_model"]+f'/R_score_layer{start_index+1}.pt')
 
         ### loop over each single layer
         big_list=[]
