@@ -144,9 +144,9 @@ def plot_regression(val_x, val_y, var_name, rng, target, fname):
     return fig
 
 def plot_distribution(val_x, val_y, var_name, rng, target, fname):
-    plt.style.use("default")
+    plt.style.use(mplhep.style.CMS)
 
-    fig = plt.figure(figsize=(5,5))
+    fig = plt.figure(figsize=(10,10))
 
     if target=='cand':
         plt.hist(val_x, bins=rng, density=True, histtype="step", lw=2, label="cand");
