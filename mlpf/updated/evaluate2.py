@@ -87,13 +87,12 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
         print('event #: ', i)
 
         if i==4:
-            print('gen_ids_all', gen_ids_all.requires_grad)
-            print('gen_p4_all', gen_p4_all.requires_grad)
-            print('pred_ids_all', pred_ids_all.requires_grad)
-            print('pred_p4_all', pred_p4_all.requires_grad)
-            print('cand_ids_all', cand_ids_all.requires_grad)
-            print('cand_p4_all', cand_p4_all.requires_grad)
-
+            print('gen_ids_all', gen_ids_all.get_device())
+            print('gen_p4_all', gen_p4_all.get_device())
+            print('pred_ids_all', pred_ids_all.get_device())
+            print('pred_p4_all', pred_p4_all.get_device())
+            print('cand_ids_all', cand_ids_all.get_device())
+            print('cand_p4_all', cand_p4_all.get_device())
         # if i==1000:
         #     break
 
