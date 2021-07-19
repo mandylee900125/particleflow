@@ -63,7 +63,7 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
 
         pred_p4 = pred_p4.detach()
         gen_p4 = gen_p4.detach()
-        cand_p4 = cand_p4.detach()        
+        cand_p4 = cand_p4.detach()
 
         if i==0:
             gen_ids_all = gen_ids
@@ -94,8 +94,8 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
             print('cand_ids_all', cand_ids_all.requires_grad)
             print('cand_p4_all', cand_p4_all.requires_grad)
 
-        if i==1000:
-            break
+        # if i==1000:
+        #     break
 
     t1=time.time()
     print('Time taken to make predictions is:', round(((t1-t0)/60),2), 'min')
