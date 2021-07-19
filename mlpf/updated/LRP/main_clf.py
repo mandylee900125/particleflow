@@ -265,7 +265,7 @@ if __name__ == "__main__":
             dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
 
             for i,id in enumerate(gen_ids):
-                R_cat_feat_cat_pred = torch.cat([big_list[i][classs], X['x'], pred_ids_one_hot, torch.arange(start=0, end=X['x'].shape[0], step=1).float().reshape(-1,1)], dim=1)
+                R_cat_feat_cat_pred = torch.cat([big_list[i][classs].to(device), X['x'].to(device), pred_ids_one_hot.to(device), torch.arange(start=0, end=X['x'].shape[0], step=1).float().reshape(-1,1).to(device)], dim=1)
                 if id==0:
                     list0.append(R_cat_feat_cat_pred)
                     dist0.append(i)
@@ -314,6 +314,8 @@ if __name__ == "__main__":
                     else:
                         features = ["type", "Et", "eta", "sphi", "cphi", "E", "Eem", "Ehad", "padding", "padding", "padding", "padding"]
 
+                    features = ["type", "pt/Et", "eta", "sphi", "cphi", "E", "eta_out/Eem", "sphi_out/Ehad", "cphi_out/padding", "charge/padding", "is_gen_mu/padding", "is_gen_el/padding"]
+
                     fig, ax = plt.subplots()
                     fig.tight_layout()
                     if pid==0:
@@ -340,7 +342,7 @@ if __name__ == "__main__":
                     plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R=[round(num,2) for num in harvest[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
                     plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
                     plt.colorbar()
-                    fig.set_size_inches(11, 16)
+                    fig.set_size_inches(19, 10)
                     plt.savefig(outpath + f'/class{str(classs)}'+f'/pid{str(pid)}'+f'/sample{str(j)}.jpg')
                     plt.close(fig)
 
