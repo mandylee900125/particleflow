@@ -57,30 +57,39 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
 
         pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
 
-        _, gen_ids = torch.max(gen_ids_one_hot.to('cpu'), -1)
-        _, pred_ids = torch.max(pred_ids_one_hot.to('cpu'), -1)
-        _, cand_ids = torch.max(cand_ids_one_hot.to('cpu'), -1)
+        _, gen_ids = torch.max(gen_ids_one_hot.detach().to('cpu'), -1)
+        _, pred_ids = torch.max(pred_ids_one_hot.detach().to('cpu'), -1)
+        _, cand_ids = torch.max(cand_ids_one_hot.detach().to('cpu'), -1)
 
         if i==0:
-            gen_ids_all = gen_ids.to('cpu')
-            gen_p4_all = gen_p4.to('cpu')
+            gen_ids_all = gen_ids
+            gen_p4_all = gen_p4
 
-            pred_ids_all = pred_ids.to('cpu')
-            pred_p4_all = pred_p4.to('cpu')
+            pred_ids_all = pred_ids
+            pred_p4_all = pred_p4
 
-            cand_ids_all = cand_ids.to('cpu')
-            cand_p4_all = cand_p4.to('cpu')
+            cand_ids_all = cand_ids
+            cand_p4_all = cand_p4
         else:
-            gen_ids_all = torch.cat([gen_ids_all.to('cpu'),gen_ids.to('cpu')]).to('cpu')
-            gen_p4_all = torch.cat([gen_p4_all.to('cpu'),gen_p4.to('cpu')]).to('cpu')
+            gen_ids_all = torch.cat([gen_ids_all,gen_ids])
+            gen_p4_all = torch.cat([gen_p4_all,gen_p4])
 
-            pred_ids_all = torch.cat([pred_ids_all.to('cpu'),pred_ids.to('cpu')]).to('cpu')
-            pred_p4_all = torch.cat([pred_p4_all.to('cpu'),pred_p4.to('cpu')]).to('cpu')
+            pred_ids_all = torch.cat([pred_ids_all,pred_ids])
+            pred_p4_all = torch.cat([pred_p4_all,pred_p4])
 
-            cand_ids_all = torch.cat([cand_ids_all.to('cpu'),cand_ids.to('cpu')]).to('cpu')
-            cand_p4_all = torch.cat([cand_p4.to('cpu'),cand_p4.to('cpu')]).to('cpu')
+            cand_ids_all = torch.cat([cand_ids_all,cand_ids])
+            cand_p4_all = torch.cat([cand_p4,cand_p4])
 
         print('event #: ', i)
+
+        if i==4:
+            print('gen_ids_all', gen_ids_all.requires_grad)
+            print('gen_p4_all', gen_p4_all.requires_grad)
+            print('pred_ids_all', pred_ids_all.requires_grad)
+            print('pred_p4_all', pred_p4_all.requires_grad)
+            print('cand_ids_all', cand_ids_all.requires_grad)
+            print('cand_p4_all', cand_p4_all.requires_grad)
+
         if i==1000:
             break
 
