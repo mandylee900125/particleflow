@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # 'space_dim': 4, 'propagate_dimensions': 22,'nearest': 16, 'overwrite': True,
     # 'load_epoch': 14, 'load_model': 'LRP_clf_PFNet7_gen_ntrain_1_nepochs_15_batch_size_1_lr_0.001_alpha_0.0002_clf_noskip_nn1',
     # 'classification_only': True, 'nn1': True, 'conv2': False, 'nn3': False, 'title': '',
-    # 'explain': False, 'load': False, 'make_heatmaps': True})
+    # 'explain': False, 'load': True, 'make_heatmaps': True})
 
     args = objectview({'train': False, 'n_train': 1, 'n_valid': 1, 'n_test': 2, 'n_epochs': 2, 'patience': 100, 'hidden_dim':256, 'input_encoding': 12, 'encoding_dim': 64,
     'batch_size': 1, 'model': 'PFNet7', 'target': 'gen', 'dataset': '../../../../test_tmp_delphes/data/pythia8_ttbar', 'dataset_qcd': '../../../../test_tmp_delphes/data/pythia8_qcd',
@@ -265,7 +265,7 @@ if __name__ == "__main__":
             dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
 
             for i,id in enumerate(gen_ids):
-                R_cat_feat_cat_pred = torch.cat([big_list[i][classs], X['x'], pred_ids_one_hot, torch.arange(start=0, end=X['x'].shape[0], step=1, dtype=int).reshape(-1,1)], dim=1)
+                R_cat_feat_cat_pred = torch.cat([big_list[i][classs], X['x'], pred_ids_one_hot, torch.arange(start=0, end=X['x'].shape[0], step=1, dtype=float).reshape(-1,1)], dim=1)
                 if id==0:
                     list0.append(R_cat_feat_cat_pred)
                     dist0.append(i)
