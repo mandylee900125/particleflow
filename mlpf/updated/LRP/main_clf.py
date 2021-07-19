@@ -340,7 +340,7 @@ if __name__ == "__main__":
                     ax.set_xticklabels(features)
                     ax.set_yticklabels(node_types)
                     plt.xlabel("\noutput prediction:{R} \nposition of node is row # {harvest}".format(R=[round(num,2) for num in harvest[j, 24:30].tolist()], harvest=((harvest[:,30] == pos).nonzero(as_tuple=True)[0].item()+1)))
-                    plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().numpy(), interpolation="nearest", cmap='copper')
+                    plt.imshow(torch.abs(harvest[:,:12]*10**7).detach().cpu().numpy(), interpolation="nearest", cmap='copper')
                     plt.colorbar()
                     fig.set_size_inches(19, 10)
                     plt.savefig(outpath + f'/class{str(classs)}'+f'/pid{str(pid)}'+f'/sample{str(j)}.jpg')
