@@ -61,6 +61,10 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
         _, pred_ids = torch.max(pred_ids_one_hot.detach().to('cpu'), -1)
         _, cand_ids = torch.max(cand_ids_one_hot.detach().to('cpu'), -1)
 
+        pred_p4 = pred_p4.detach()
+        gen_p4 = gen_p4.detach()
+        cand_p4 = cand_p4.detach()        
+
         if i==0:
             gen_ids_all = gen_ids
             gen_p4_all = gen_p4
