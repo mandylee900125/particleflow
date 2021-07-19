@@ -265,7 +265,7 @@ if __name__ == "__main__":
             dist0, dist1, dist2, dist3, dist4, dist5 = [], [], [], [], [], []
 
             for i,id in enumerate(gen_ids):
-                R_cat_feat_cat_pred = torch.cat([big_list[i][classs], X['x'], pred_ids_one_hot, torch.arange(start=0, end=X['x'].shape[0], step=1, dtype=float).reshape(-1,1)], dim=1)
+                R_cat_feat_cat_pred = torch.cat([big_list[i][classs], X['x'], pred_ids_one_hot, torch.arange(start=0, end=X['x'].shape[0], step=1).float().reshape(-1,1)], dim=1)
                 if id==0:
                     list0.append(R_cat_feat_cat_pred)
                     dist0.append(i)
