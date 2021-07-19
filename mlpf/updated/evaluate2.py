@@ -62,23 +62,23 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
         _, cand_ids = torch.max(cand_ids_one_hot.to('cpu'), -1)
 
         if i==0:
-            gen_ids_all = gen_ids
-            gen_p4_all = gen_p4
+            gen_ids_all = gen_ids.to('cpu')
+            gen_p4_all = gen_p4.to('cpu')
 
-            pred_ids_all = pred_ids
-            pred_p4_all = pred_p4
+            pred_ids_all = pred_ids.to('cpu')
+            pred_p4_all = pred_p4.to('cpu')
 
-            cand_ids_all = cand_ids
-            cand_p4_all = cand_p4
+            cand_ids_all = cand_ids.to('cpu')
+            cand_p4_all = cand_p4.to('cpu')
         else:
-            gen_ids_all = torch.cat([gen_ids_all,gen_ids])
-            gen_p4_all = torch.cat([gen_p4_all,gen_p4])
+            gen_ids_all = torch.cat([gen_ids_all.to('cpu'),gen_ids.to('cpu')]).to('cpu')
+            gen_p4_all = torch.cat([gen_p4_all.to('cpu'),gen_p4.to('cpu')]).to('cpu')
 
-            pred_ids_all = torch.cat([pred_ids_all,pred_ids])
-            pred_p4_all = torch.cat([pred_p4_all,pred_p4])
+            pred_ids_all = torch.cat([pred_ids_all.to('cpu'),pred_ids.to('cpu')]).to('cpu')
+            pred_p4_all = torch.cat([pred_p4_all.to('cpu'),pred_p4.to('cpu')]).to('cpu')
 
-            cand_ids_all = torch.cat([cand_ids_all,cand_ids])
-            cand_p4_all = torch.cat([cand_p4,cand_p4])
+            cand_ids_all = torch.cat([cand_ids_all.to('cpu'),cand_ids.to('cpu')]).to('cpu')
+            cand_p4_all = torch.cat([cand_p4.to('cpu'),cand_p4.to('cpu')]).to('cpu')
 
         print('event #: ', i)
         if i==1000:
