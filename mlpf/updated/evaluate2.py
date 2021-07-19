@@ -57,9 +57,9 @@ def make_predictions(model, test_loader, outpath, target, device, epoch, which_d
 
         pred_ids_one_hot, pred_p4, gen_ids_one_hot, gen_p4, cand_ids_one_hot, cand_p4 = model(X)
 
-        _, gen_ids = torch.max(gen_ids_one_hot, -1)
-        _, pred_ids = torch.max(pred_ids_one_hot, -1)
-        _, cand_ids = torch.max(cand_ids_one_hot, -1)
+        _, gen_ids = torch.max(gen_ids_one_hot.to('cpu'), -1)
+        _, pred_ids = torch.max(pred_ids_one_hot.to('cpu'), -1)
+        _, cand_ids = torch.max(cand_ids_one_hot.to('cpu'), -1)
 
         if i==0:
             gen_ids_all = gen_ids
