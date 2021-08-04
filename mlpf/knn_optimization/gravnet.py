@@ -9,9 +9,10 @@ from torch_scatter import scatter
 from torch_geometric.nn.conv import MessagePassing
 
 try:
-    from torch_cluster import knn
+    from torch_cmspepr import knn_graph
 except ImportError:
-    knn = None
+    knn_graph = None
+knn = knn_graph
 
 # copied it from pytorch_geometric source code
 # ADDED: retrieve edge_index, retrieve edge_weight
@@ -28,7 +29,6 @@ class GravNetConv(MessagePassing):
     A second projection of the input feature space is then propagated from the
     neighbors to each vertex using distance weights that are derived by
     applying a Gaussian function to the distances.
-
     Args:
         in_channels (int): The number of input channels.
         out_channels (int): The number of output channels.
@@ -91,9 +91,7 @@ class GravNetConv(MessagePassing):
 
         s_l: Tensor = self.lin_s(x[0])
         s_r: Tensor = self.lin_s(x[1]) if is_bipartite else s_l
-
-        edge_index = knn(s_l, s_r, self.k, b[0], b[1],
-                         num_workers=self.num_workers)
+        edge_index = knn(s_l, self.k, b[0])##########################
 
         edge_weight = (s_l[edge_index[1]] - s_r[edge_index[0]]).pow(2).sum(-1)
         edge_weight = torch.exp(-10. * edge_weight)  # 10 gives a better spread
